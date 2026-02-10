@@ -1,16 +1,26 @@
 # flutter_video_stable
 
-A new Flutter project.
+一个基于 Flutter + media_kit 的本地视频播放器。
 
-## Getting Started
+## 功能
 
-This project is a starting point for a Flutter application.
+- 本地视频播放与播放列表
+- 记忆点标记与一键跳转
+- 自定义控制条（横竖屏与全屏适配）
+- 进度条提示与文件名展示
 
-A few resources to get you started if this is your first Flutter project:
+## 运行环境
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Flutter SDK: 3.9.2+
+- Dart SDK: 3.9.2+
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 快速开始
+
+```bash
+flutter pub get
+flutter run
+```
+
+## 权限说明
+
+Android 端使用文件系统时会申请存储权限（包含管理外部存储权限），请在系统设置中授予。
