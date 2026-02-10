@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:flutter_video_stable/common/components/status_page/status_page.dart';
 import 'package:flutter_video_stable/utils/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -129,10 +130,85 @@ class MainVideoController extends GetxController {
   void onClose() {}
 
   playIndex(int index) {
+    if (playlist.isEmpty) {
+      return;
+    }
+    if (index < 0 || index >= playlist.length) {
+      return;
+    }
     currentIndex.value = index;
     var path = playlist[index].path;
     currentPath.value = path;
     playFile(path);
+  }
+
+  void playPrev() {
+    if (playlist.isEmpty) {
+      return;
+    }
+    var nextIndex = currentIndex.value - 1;
+    if (nextIndex < 0) {
+      nextIndex = playlist.length - 1;
+    }
+    playIndex(nextIndex);
+  }
+
+  void playNext() {
+    if (playlist.isEmpty) {
+      return;
+    }
+    var nextIndex = currentIndex.value + 1;
+    if (nextIndex >= playlist.length) {
+      nextIndex = 0;
+    }
+    playIndex(nextIndex);
+  }
+
+  void showPlaylistSheet() {
+    if (playlist.isEmpty) {
+      return;
+    }
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.6,
+        color: Colors.black.withOpacity(0.9),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Get.back(),
+              ),
+            ),
+            Expanded(
+              child: Obx(() => ListView.builder(
+                    itemCount: playlist.length,
+                    itemBuilder: (context, index) {
+                      final name = playlist[index].path.split('/').last;
+                      return ListTile(
+                        title: Obx(() => Text(
+                              name,
+                              style: TextStyle(
+                                color: (index == currentIndex.value)
+                                    ? Colors.amber
+                                    : Colors.white,
+                              ),
+                            )),
+                        onTap: () {
+                          playIndex(index);
+                          Get.back();
+                        },
+                      );
+                    },
+                  )),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   // 下拉刷新、上拉加载的示例

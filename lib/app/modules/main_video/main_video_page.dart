@@ -52,8 +52,48 @@ class MainVideoPage extends GetView<MainVideoController> {
                                 textAlign: TextAlign.center,
                               ),
                             )
-                          : Video(
-                              controller: controller.controller,
+                          : MaterialDesktopVideoControlsTheme(
+                              normal: const MaterialDesktopVideoControlsThemeData(),
+                              fullscreen: MaterialDesktopVideoControlsThemeData(
+                                topButtonBar: [
+                                  const Spacer(),
+                                  MaterialCustomButton(
+                                    icon: const Icon(Icons.skip_previous),
+                                    onPressed: controller.playPrev,
+                                  ),
+                                  MaterialCustomButton(
+                                    icon: const Icon(Icons.skip_next),
+                                    onPressed: controller.playNext,
+                                  ),
+                                  MaterialCustomButton(
+                                    icon: const Icon(Icons.list),
+                                    onPressed: controller.showPlaylistSheet,
+                                  ),
+                                ],
+                              ),
+                              child: MaterialVideoControlsTheme(
+                                normal: const MaterialVideoControlsThemeData(),
+                                fullscreen: MaterialVideoControlsThemeData(
+                                  topButtonBar: [
+                                    const Spacer(),
+                                    MaterialCustomButton(
+                                      icon: const Icon(Icons.skip_previous),
+                                      onPressed: controller.playPrev,
+                                    ),
+                                    MaterialCustomButton(
+                                      icon: const Icon(Icons.skip_next),
+                                      onPressed: controller.playNext,
+                                    ),
+                                    MaterialCustomButton(
+                                      icon: const Icon(Icons.list),
+                                      onPressed: controller.showPlaylistSheet,
+                                    ),
+                                  ],
+                                ),
+                                child: Video(
+                                  controller: controller.controller,
+                                ),
+                              ),
                             ),
                     )),
                 // ✅ 半透明播放列表（覆盖在右边）
@@ -104,17 +144,45 @@ class MainVideoPage extends GetView<MainVideoController> {
                       ),
                     ))),
 
-                // ✅ 右下角呼出播放列表按钮
-                Positioned(
-                  right: 20,
-                  top: Get.height / 2,
-                  child: FloatingActionButton(
-                    backgroundColor: Colors.black.withOpacity(0.2),
-                    child: const Icon(Icons.list, color: Colors.white),
-                    onPressed: () =>
-                        controller.showPlaylist.value = !(controller.showPlaylist.value),
-                  ),
-                ),
+                Obx(() {
+                  final canSwitch = controller.playlist.isNotEmpty;
+                  return Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 30,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FloatingActionButton(
+                          heroTag: 'prev',
+                          mini: true,
+                          backgroundColor: Colors.black.withOpacity(0.2),
+                          onPressed: canSwitch ? controller.playPrev : null,
+                          child: const Icon(Icons.skip_previous, color: Colors.white),
+                        ),
+                        const SizedBox(width: 16),
+                        FloatingActionButton(
+                          heroTag: 'list',
+                          mini: true,
+                          backgroundColor: Colors.black.withOpacity(0.2),
+                          onPressed: canSwitch
+                              ? () => controller.showPlaylist.value =
+                                  !(controller.showPlaylist.value)
+                              : null,
+                          child: const Icon(Icons.list, color: Colors.white),
+                        ),
+                        const SizedBox(width: 16),
+                        FloatingActionButton(
+                          heroTag: 'next',
+                          mini: true,
+                          backgroundColor: Colors.black.withOpacity(0.2),
+                          onPressed: canSwitch ? controller.playNext : null,
+                          child: const Icon(Icons.skip_next, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ],
             );
           },
