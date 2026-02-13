@@ -37,6 +37,9 @@ class MainVideoController extends GetxController {
 
   var currentIndex = 0.obs;
   var showPlaylist = false.obs; // 控制是否显示列表
+  var memoryPointMs = 0.obs;
+  final playlistScrollController = ScrollController();
+  final playlistSheetScrollController = ScrollController();
 
   late final player = Player();
   late final controller = VideoController(player);
@@ -105,6 +108,7 @@ class MainVideoController extends GetxController {
   void playFile(String path) async {
     lLog('MainVideoController.playFile ${path} ');
     await player.open(Media(path));
+    _loadMemoryPoint(path);
   }
 
   void pickFolder() async {
@@ -127,7 +131,11 @@ class MainVideoController extends GetxController {
   }
 
   @override
-  void onClose() {}
+  void onClose() {
+    playlistScrollController.dispose();
+    playlistSheetScrollController.dispose();
+    super.onClose();
+  }
 
   playIndex(int index) {
     if (playlist.isEmpty) {
@@ -164,6 +172,44 @@ class MainVideoController extends GetxController {
     playIndex(nextIndex);
   }
 
+  void saveMemoryPoint() {
+    if (currentPath.value.isEmpty) {
+      return;
+    }
+    final position = player.state.position;
+    final ms = position.inMilliseconds;
+    SpUtil.putInt(_memoryKeyForPath(currentPath.value), ms);
+    memoryPointMs.value = ms;
+    Utils.showToastMsg('记忆点已记录 ${_formatDuration(position)}');
+  }
+
+  void _loadMemoryPoint(String path) {
+    if (path.isEmpty) {
+      return;
+    }
+    final saved = SpUtil.getInt(_memoryKeyForPath(path)) ?? 0;
+    memoryPointMs.value = saved;
+  }
+
+  String _memoryKeyForPath(String path) {
+    return 'video_memory_point_${Uri.encodeComponent(path)}';
+  }
+
+  String _formatDuration(Duration duration) {
+    final totalSeconds = duration.inSeconds;
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return '${_twoDigits(hours)}:${_twoDigits(minutes)}:${_twoDigits(seconds)}';
+    }
+    return '${_twoDigits(minutes)}:${_twoDigits(seconds)}';
+  }
+
+  String _twoDigits(int n) {
+    return n.toString().padLeft(2, '0');
+  }
+
   void showPlaylistSheet() {
     if (playlist.isEmpty) {
       return;
@@ -183,6 +229,8 @@ class MainVideoController extends GetxController {
             ),
             Expanded(
               child: Obx(() => ListView.builder(
+                    controller: playlistSheetScrollController,
+                    itemExtent: 56,
                     itemCount: playlist.length,
                     itemBuilder: (context, index) {
                       final name = playlist[index].path.split('/').last;
@@ -208,6 +256,37 @@ class MainVideoController extends GetxController {
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+    );
+    _scrollToCurrent(playlistSheetScrollController);
+  }
+
+  void togglePlaylistPanel() {
+    if (showPlaylist.value) {
+      showPlaylist.value = false;
+      return;
+    }
+    showPlaylist.value = true;
+    _scrollToCurrent(playlistScrollController);
+  }
+
+  void _scrollToCurrent(ScrollController controller) {
+    if (!controller.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToCurrent(controller);
+      });
+      return;
+    }
+    final index = currentIndex.value;
+    if (index < 0 || index >= playlist.length) {
+      return;
+    }
+    const itemExtent = 56.0;
+    final offset = itemExtent * index;
+    controller.jumpTo(
+      offset.clamp(
+        controller.position.minScrollExtent,
+        controller.position.maxScrollExtent,
+      ),
     );
   }
 

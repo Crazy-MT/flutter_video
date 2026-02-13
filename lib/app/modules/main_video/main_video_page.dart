@@ -1,3 +1,4 @@
+import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import 'main_video_controller.dart';
@@ -53,7 +54,22 @@ class MainVideoPage extends GetView<MainVideoController> {
                               ),
                             )
                           : MaterialDesktopVideoControlsTheme(
-                              normal: const MaterialDesktopVideoControlsThemeData(),
+                              normal: MaterialDesktopVideoControlsThemeData(
+                                bottomButtonBar: [
+                                  const MaterialDesktopSkipPreviousButton(),
+                                  const MaterialDesktopPlayOrPauseButton(),
+                                  const MaterialDesktopSkipNextButton(),
+                                  const MaterialDesktopVolumeButton(),
+                                  Expanded(
+                                    child: _VideoFileNameLabel(
+                                      controller: controller,
+                                    ),
+                                  ),
+                                  const MaterialDesktopPositionIndicator(),
+                                  const Spacer(),
+                                  const MaterialDesktopFullscreenButton(),
+                                ],
+                              ),
                               fullscreen: MaterialDesktopVideoControlsThemeData(
                                 topButtonBar: [
                                   const Spacer(),
@@ -70,10 +86,38 @@ class MainVideoPage extends GetView<MainVideoController> {
                                     onPressed: controller.showPlaylistSheet,
                                   ),
                                 ],
+                                bottomButtonBar: [
+                                  const MaterialDesktopSkipPreviousButton(),
+                                  const MaterialDesktopPlayOrPauseButton(),
+                                  const MaterialDesktopSkipNextButton(),
+                                  const MaterialDesktopVolumeButton(),
+                                  Expanded(
+                                    child: _VideoFileNameLabel(
+                                      controller: controller,
+                                    ),
+                                  ),
+                                  const MaterialDesktopPositionIndicator(),
+                                  const Spacer(),
+                                  const MaterialDesktopFullscreenButton(),
+                                ],
                               ),
                               child: MaterialVideoControlsTheme(
-                                normal: const MaterialVideoControlsThemeData(),
+                                normal: MaterialVideoControlsThemeData(
+                                  seekGesture: true,
+                                  bottomButtonBar: [
+                                    Expanded(
+                                      child: _VideoFileNameLabel(
+                                        controller: controller,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const MaterialPositionIndicator(),
+                                    const Spacer(),
+                                    const MaterialFullscreenButton(),
+                                  ],
+                                ),
                                 fullscreen: MaterialVideoControlsThemeData(
+                                  seekGesture: true,
                                   topButtonBar: [
                                     const Spacer(),
                                     MaterialCustomButton(
@@ -85,13 +129,42 @@ class MainVideoPage extends GetView<MainVideoController> {
                                       onPressed: controller.playNext,
                                     ),
                                     MaterialCustomButton(
+                                      icon: const Icon(Icons.bookmark),
+                                      onPressed: controller.saveMemoryPoint,
+                                    ),
+                                    MaterialCustomButton(
                                       icon: const Icon(Icons.list),
                                       onPressed: controller.showPlaylistSheet,
                                     ),
                                   ],
+                                  bottomButtonBar: [
+                                    Expanded(
+                                      child: _VideoFileNameLabel(
+                                        controller: controller,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const MaterialPositionIndicator(),
+                                    const Spacer(),
+                                    const MaterialFullscreenButton(),
+                                  ],
                                 ),
                                 child: Video(
                                   controller: controller.controller,
+                                  controls: (state) {
+                                    return Stack(
+                                      children: [
+                                        MaterialVideoControls(state),
+                                        _HidePlaylistOnInteract(
+                                          controller: controller,
+                                        ),
+                                        _MemoryPointMarker(
+                                          controller: controller,
+                                          player: state.widget.controller.player,
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -100,9 +173,9 @@ class MainVideoPage extends GetView<MainVideoController> {
                 Obx(() => Visibility(
                     visible: controller.showPlaylist.value,
                     child: Positioned(
-                      top: 0,
+                      top: Get.height * 0.2,
                       right: 0,
-                      bottom: 0,
+                      height: Get.height * 0.6,
                       width: 200,
                       // 固定宽度
                       child: Container(
@@ -120,6 +193,8 @@ class MainVideoPage extends GetView<MainVideoController> {
 
                             Expanded(
                               child: Obx(() => ListView.builder(
+                                    controller: controller.playlistScrollController,
+                                    itemExtent: 56,
                                     itemCount: controller.playlist.length,
                                     itemBuilder: (context, index) {
                                       final name = controller.playlist[index].path.split('/').last;
@@ -146,6 +221,7 @@ class MainVideoPage extends GetView<MainVideoController> {
 
                 Obx(() {
                   final canSwitch = controller.playlist.isNotEmpty;
+                  final canMark = controller.currentPath.value.isNotEmpty;
                   return Positioned(
                     left: 0,
                     right: 0,
@@ -165,11 +241,17 @@ class MainVideoPage extends GetView<MainVideoController> {
                           heroTag: 'list',
                           mini: true,
                           backgroundColor: Colors.black.withOpacity(0.2),
-                          onPressed: canSwitch
-                              ? () => controller.showPlaylist.value =
-                                  !(controller.showPlaylist.value)
-                              : null,
+                          onPressed:
+                              canSwitch ? controller.togglePlaylistPanel : null,
                           child: const Icon(Icons.list, color: Colors.white),
+                        ),
+                        const SizedBox(width: 16),
+                        FloatingActionButton(
+                          heroTag: 'bookmark',
+                          mini: true,
+                          backgroundColor: Colors.black.withOpacity(0.2),
+                          onPressed: canMark ? controller.saveMemoryPoint : null,
+                          child: const Icon(Icons.bookmark, color: Colors.white),
                         ),
                         const SizedBox(width: 16),
                         FloatingActionButton(
@@ -189,5 +271,163 @@ class MainVideoPage extends GetView<MainVideoController> {
         ),
       ),
     );
+  }
+}
+
+class _MemoryPointMarker extends StatelessWidget {
+  const _MemoryPointMarker({
+    required this.controller,
+    required this.player,
+  });
+
+  final MainVideoController controller;
+  final Player player;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final memoryMs = controller.memoryPointMs.value;
+      if (memoryMs <= 0) {
+        return const SizedBox.shrink();
+      }
+      final isFullscreen = FullscreenInheritedWidget.maybeOf(context) != null;
+      final platform = Theme.of(context).platform;
+      final useDesktopTheme = platform == TargetPlatform.macOS ||
+          platform == TargetPlatform.windows ||
+          platform == TargetPlatform.linux;
+      final materialTheme = isFullscreen
+          ? MaterialVideoControlsTheme.maybeOf(context)?.fullscreen ??
+              const MaterialVideoControlsThemeData()
+          : MaterialVideoControlsTheme.maybeOf(context)?.normal ??
+              const MaterialVideoControlsThemeData();
+      final desktopTheme = isFullscreen
+          ? MaterialDesktopVideoControlsTheme.maybeOf(context)?.fullscreen ??
+              const MaterialDesktopVideoControlsThemeData()
+          : MaterialDesktopVideoControlsTheme.maybeOf(context)?.normal ??
+              const MaterialDesktopVideoControlsThemeData();
+      final seekBarMargin =
+          useDesktopTheme ? desktopTheme.seekBarMargin : materialTheme.seekBarMargin;
+      final seekBarContainerHeight = useDesktopTheme
+          ? desktopTheme.seekBarContainerHeight
+          : materialTheme.seekBarContainerHeight;
+      final seekBarHeight =
+          useDesktopTheme ? desktopTheme.seekBarHeight : materialTheme.seekBarHeight;
+      final seekBarAlignment =
+          useDesktopTheme ? Alignment.centerLeft : materialTheme.seekBarAlignment;
+      return StreamBuilder<Duration>(
+        stream: player.stream.duration,
+        initialData: player.state.duration,
+        builder: (context, snapshot) {
+          final duration = snapshot.data;
+          if (duration == null || duration.inMilliseconds <= 0) {
+            return const SizedBox.shrink();
+          }
+          if (memoryMs > duration.inMilliseconds) {
+            return const SizedBox.shrink();
+          }
+          return Positioned.fill(
+            child: IgnorePointer(
+              child: Padding(
+                padding: seekBarMargin,
+                child: Align(
+                  alignment: seekBarAlignment,
+                  child: SizedBox(
+                    height: seekBarContainerHeight,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final barWidth = constraints.maxWidth;
+                        if (barWidth <= 0) {
+                          return const SizedBox.shrink();
+                        }
+                        final ratio = memoryMs / duration.inMilliseconds;
+                        const markerWidth = 3.0;
+                        final left =
+                            (barWidth * ratio - markerWidth / 2).clamp(0.0, barWidth);
+                        final normalizedY = (seekBarAlignment.y + 1) / 2;
+                        final top =
+                            (seekBarContainerHeight - seekBarHeight) * normalizedY;
+                        return Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            Positioned(
+                              left: left,
+                              top: top,
+                              child: Container(
+                                width: markerWidth,
+                                height: seekBarHeight,
+                                color: Colors.greenAccent,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    });
+  }
+}
+
+class _VideoFileNameLabel extends StatelessWidget {
+  const _VideoFileNameLabel({
+    required this.controller,
+  });
+
+  final MainVideoController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final path = controller.currentPath.value;
+      if (path.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      final name = path.split('/').last;
+      return Text(
+        name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+      );
+    });
+  }
+}
+
+class _HidePlaylistOnInteract extends StatelessWidget {
+  const _HidePlaylistOnInteract({
+    required this.controller,
+  });
+
+  final MainVideoController controller;
+
+  void _hide() {
+    if (controller.showPlaylist.value) {
+      controller.showPlaylist.value = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (!controller.showPlaylist.value) {
+        return const SizedBox.shrink();
+      }
+      return Positioned.fill(
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (_) => _hide(),
+          onPointerSignal: (_) => _hide(),
+          child: MouseRegion(
+            onHover: (_) => _hide(),
+            child: const SizedBox.expand(),
+          ),
+        ),
+      );
+    });
   }
 }
