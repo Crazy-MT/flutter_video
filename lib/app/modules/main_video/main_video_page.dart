@@ -1,14 +1,11 @@
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:flutter/gestures.dart';
 
 import 'main_video_controller.dart';
 import 'package:flutter_video_stable/common/components/status_page/status_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_video_stable/app/routes/app_routes.dart';
-import 'package:flutter_video_stable/common/colors.dart';
-import 'package:flutter_video_stable/common/components/common_app_bar.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class MainVideoPage extends GetView<MainVideoController> {
   const MainVideoPage({Key? key}) : super(key: key);
@@ -155,12 +152,54 @@ class MainVideoPage extends GetView<MainVideoController> {
                                     return Stack(
                                       children: [
                                         MaterialVideoControls(state),
+                                        Obx(() => AnimatedOpacity(
+                                              opacity:
+                                                  controller.showSeekFeedback
+                                                          .value
+                                                      ? 1.0
+                                                      : 0.0,
+                                              duration: const Duration(
+                                                  milliseconds: 200),
+                                              child: Center(
+                                                child: Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                          horizontal: 24,
+                                                          vertical: 12),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black54,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: Text(
+                                                    controller
+                                                        .seekFeedback.value,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 32,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            )),
+                                        Positioned.fill(
+                                          child: _DoubleTapHandler(
+                                            onDoubleTapLeft:
+                                                controller.seekBackward,
+                                            onDoubleTapRight:
+                                                controller.seekForward,
+                                          ),
+                                        ),
                                         _HidePlaylistOnInteract(
                                           controller: controller,
                                         ),
                                         _MemoryPointMarker(
                                           controller: controller,
-                                          player: state.widget.controller.player,
+                                          player:
+                                              state.widget.controller.player,
                                         ),
                                       ],
                                     );
@@ -186,29 +225,39 @@ class MainVideoPage extends GetView<MainVideoController> {
                             Align(
                               alignment: Alignment.topRight,
                               child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white),
-                                onPressed: () => controller.showPlaylist.value = false,
+                                icon: const Icon(Icons.close,
+                                    color: Colors.white),
+                                onPressed: () =>
+                                    controller.showPlaylist.value = false,
                               ),
                             ),
 
                             Expanded(
                               child: Obx(() => ListView.builder(
-                                    controller: controller.playlistScrollController,
+                                    controller:
+                                        controller.playlistScrollController,
                                     itemExtent: 56,
                                     itemCount: controller.playlist.length,
                                     itemBuilder: (context, index) {
-                                      final name = controller.playlist[index].path.split('/').last;
+                                      final name = controller
+                                          .playlist[index].path
+                                          .split('/')
+                                          .last;
                                       return ListTile(
                                         title: Obx(() => Text(
                                               name,
                                               style: TextStyle(
-                                                color: (index == controller.currentIndex.value)
+                                                color: (index ==
+                                                        controller
+                                                            .currentIndex.value)
                                                     ? Colors.amber
                                                     : Colors.white,
                                               ),
                                             )),
-                                        onTap: () => controller.playIndex(index),
-                                        onLongPress: () => controller.showPlaylist.value =
+                                        onTap: () =>
+                                            controller.playIndex(index),
+                                        onLongPress: () => controller
+                                                .showPlaylist.value =
                                             !(controller.showPlaylist.value),
                                       );
                                     },
@@ -234,7 +283,8 @@ class MainVideoPage extends GetView<MainVideoController> {
                           mini: true,
                           backgroundColor: Colors.black.withOpacity(0.2),
                           onPressed: canSwitch ? controller.playPrev : null,
-                          child: const Icon(Icons.skip_previous, color: Colors.white),
+                          child: const Icon(Icons.skip_previous,
+                              color: Colors.white),
                         ),
                         const SizedBox(width: 16),
                         FloatingActionButton(
@@ -250,8 +300,10 @@ class MainVideoPage extends GetView<MainVideoController> {
                           heroTag: 'bookmark',
                           mini: true,
                           backgroundColor: Colors.black.withOpacity(0.2),
-                          onPressed: canMark ? controller.saveMemoryPoint : null,
-                          child: const Icon(Icons.bookmark, color: Colors.white),
+                          onPressed:
+                              canMark ? controller.saveMemoryPoint : null,
+                          child:
+                              const Icon(Icons.bookmark, color: Colors.white),
                         ),
                         const SizedBox(width: 16),
                         FloatingActionButton(
@@ -259,12 +311,14 @@ class MainVideoPage extends GetView<MainVideoController> {
                           mini: true,
                           backgroundColor: Colors.black.withOpacity(0.2),
                           onPressed: canSwitch ? controller.playNext : null,
-                          child: const Icon(Icons.skip_next, color: Colors.white),
+                          child:
+                              const Icon(Icons.skip_next, color: Colors.white),
                         ),
                       ],
                     ),
                   );
                 }),
+                // 双击检测层 - 放在最下面确保能接收事件
               ],
             );
           },
@@ -305,15 +359,18 @@ class _MemoryPointMarker extends StatelessWidget {
               const MaterialDesktopVideoControlsThemeData()
           : MaterialDesktopVideoControlsTheme.maybeOf(context)?.normal ??
               const MaterialDesktopVideoControlsThemeData();
-      final seekBarMargin =
-          useDesktopTheme ? desktopTheme.seekBarMargin : materialTheme.seekBarMargin;
+      final seekBarMargin = useDesktopTheme
+          ? desktopTheme.seekBarMargin
+          : materialTheme.seekBarMargin;
       final seekBarContainerHeight = useDesktopTheme
           ? desktopTheme.seekBarContainerHeight
           : materialTheme.seekBarContainerHeight;
-      final seekBarHeight =
-          useDesktopTheme ? desktopTheme.seekBarHeight : materialTheme.seekBarHeight;
-      final seekBarAlignment =
-          useDesktopTheme ? Alignment.centerLeft : materialTheme.seekBarAlignment;
+      final seekBarHeight = useDesktopTheme
+          ? desktopTheme.seekBarHeight
+          : materialTheme.seekBarHeight;
+      final seekBarAlignment = useDesktopTheme
+          ? Alignment.centerLeft
+          : materialTheme.seekBarAlignment;
       return StreamBuilder<Duration>(
         stream: player.stream.duration,
         initialData: player.state.duration,
@@ -341,11 +398,11 @@ class _MemoryPointMarker extends StatelessWidget {
                         }
                         final ratio = memoryMs / duration.inMilliseconds;
                         const markerWidth = 3.0;
-                        final left =
-                            (barWidth * ratio - markerWidth / 2).clamp(0.0, barWidth);
+                        final left = (barWidth * ratio - markerWidth / 2)
+                            .clamp(0.0, barWidth);
                         final normalizedY = (seekBarAlignment.y + 1) / 2;
-                        final top =
-                            (seekBarContainerHeight - seekBarHeight) * normalizedY;
+                        final top = (seekBarContainerHeight - seekBarHeight) *
+                            normalizedY;
                         return Stack(
                           alignment: Alignment.centerLeft,
                           children: [
@@ -429,5 +486,51 @@ class _HidePlaylistOnInteract extends StatelessWidget {
         ),
       );
     });
+  }
+}
+
+class _DoubleTapHandler extends StatefulWidget {
+  const _DoubleTapHandler({
+    required this.onDoubleTapLeft,
+    required this.onDoubleTapRight,
+  });
+
+  final VoidCallback onDoubleTapLeft;
+  final VoidCallback onDoubleTapRight;
+
+  @override
+  State<_DoubleTapHandler> createState() => _DoubleTapHandlerState();
+}
+
+class _DoubleTapHandlerState extends State<_DoubleTapHandler> {
+  DateTime? _lastTapTime;
+  double? _lastTapX;
+
+  static const _doubleTapDuration = Duration(milliseconds: 300);
+
+  void _handleTap(PointerDownEvent event) {
+    final now = DateTime.now();
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!) < _doubleTapDuration) {
+      final width = context.size?.width ?? 0;
+      if (_lastTapX! < width / 2) {
+        widget.onDoubleTapLeft();
+      } else {
+        widget.onDoubleTapRight();
+      }
+      _lastTapTime = null;
+      _lastTapX = null;
+    } else {
+      _lastTapTime = now;
+      _lastTapX = event.localPosition.dx;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: _handleTap,
+      behavior: HitTestBehavior.translucent,
+    );
   }
 }

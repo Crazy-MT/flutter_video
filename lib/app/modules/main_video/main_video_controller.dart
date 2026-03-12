@@ -38,6 +38,8 @@ class MainVideoController extends GetxController {
   var currentIndex = 0.obs;
   var showPlaylist = false.obs; // 控制是否显示列表
   var memoryPointMs = 0.obs;
+  var seekFeedback = ''.obs;
+  var showSeekFeedback = false.obs;
   final playlistScrollController = ScrollController();
   final playlistSheetScrollController = ScrollController();
 
@@ -63,7 +65,7 @@ class MainVideoController extends GetxController {
   }
 
   Future<void> requestStoragePermission() async {
-    if(!Platform.isAndroid) {
+    if (!Platform.isAndroid) {
       pickFolder();
       return;
     }
@@ -82,7 +84,6 @@ class MainVideoController extends GetxController {
       }
     }
   }
-
 
   Future<void> _handleMethodCall(MethodCall call) async {
     /*if (call.method == "onVideoReceived") {
@@ -170,6 +171,35 @@ class MainVideoController extends GetxController {
       nextIndex = 0;
     }
     playIndex(nextIndex);
+  }
+
+  void seekBackward() {
+    if (currentPath.value.isEmpty) {
+      return;
+    }
+    final position = player.state.position;
+    final newPosition = position - const Duration(seconds: 5);
+    player.seek(newPosition < Duration.zero ? Duration.zero : newPosition);
+    _showSeekFeedback('-5s');
+  }
+
+  void seekForward() {
+    if (currentPath.value.isEmpty) {
+      return;
+    }
+    final position = player.state.position;
+    final duration = player.state.duration;
+    final newPosition = position + const Duration(seconds: 5);
+    player.seek(newPosition > duration ? duration : newPosition);
+    _showSeekFeedback('+5s');
+  }
+
+  void _showSeekFeedback(String text) {
+    seekFeedback.value = text;
+    showSeekFeedback.value = true;
+    Future.delayed(const Duration(milliseconds: 800), () {
+      showSeekFeedback.value = false;
+    });
   }
 
   void saveMemoryPoint() {
@@ -329,5 +359,4 @@ class MainVideoController extends GetxController {
           });
     }
   */
-
 }
