@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter/gestures.dart';
@@ -8,22 +10,63 @@ import 'package:flutter_video_stable/common/components/status_page/status_page.d
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class MainVideoPage extends GetView<MainVideoController> {
+class MainVideoPage extends StatefulWidget {
   const MainVideoPage({Key? key}) : super(key: key);
 
   @override
+  State<MainVideoPage> createState() => _MainVideoPageState();
+}
+
+class _MainVideoPageState extends State<MainVideoPage> {
+  late final MainVideoController controller;
+  Timer? _hideBottomToolsTimer;
+  bool _showBottomTools = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<MainVideoController>();
+  }
+
+  @override
+  void dispose() {
+    _hideBottomToolsTimer?.cancel();
+    super.dispose();
+  }
+
+  void _showBottomToolsTemporarily() {
+    if (!_showBottomTools) {
+      setState(() {
+        _showBottomTools = true;
+      });
+    }
+    _hideBottomToolsTimer?.cancel();
+    _hideBottomToolsTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _showBottomTools = false;
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return RawKeyboardListener(
+    return Focus(
       autofocus: true,
       focusNode: FocusNode(),
-      onKey: (RawKeyEvent event) {
-        if (event is RawKeyDownEvent) {
+      onKeyEvent: (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent) {
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
             controller.seekBackward();
+            return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
             controller.seekForward();
+            return KeyEventResult.handled;
           }
         }
+        return KeyEventResult.ignored;
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -49,7 +92,10 @@ class MainVideoPage extends GetView<MainVideoController> {
             },
             errorMsg: controller.errorMsg.value,
             builder: (BuildContext context) {
-              return Stack(
+              return Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _showBottomToolsTemporarily(),
+                child: Stack(
                 children: [
                   Obx(() => Center(
                         child: controller.currentPath.value.isEmpty
@@ -112,111 +158,126 @@ class MainVideoPage extends GetView<MainVideoController> {
                                     const MaterialDesktopFullscreenButton(),
                                   ],
                                 ),
-                                child: MaterialVideoControlsTheme(
-                                  normal: MaterialVideoControlsThemeData(
-                                    seekGesture: true,
-                                    bottomButtonBar: [
-                                      Expanded(
-                                        child: _VideoFileNameLabel(
-                                          controller: controller,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 30),
+                                  child: MaterialVideoControlsTheme(
+                                    normal: MaterialVideoControlsThemeData(
+                                      seekGesture: true,
+                                      bottomButtonBar: [
+                                        Expanded(
+                                          child: _VideoFileNameLabel(
+                                            controller: controller,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const MaterialPositionIndicator(),
-                                      const Spacer(),
-                                      const MaterialFullscreenButton(),
-                                    ],
-                                  ),
-                                  fullscreen: MaterialVideoControlsThemeData(
-                                    seekGesture: true,
-                                    topButtonBar: [
-                                      const Spacer(),
-                                      MaterialCustomButton(
-                                        icon: const Icon(Icons.skip_previous),
-                                        onPressed: controller.playPrev,
-                                      ),
-                                      MaterialCustomButton(
-                                        icon: const Icon(Icons.skip_next),
-                                        onPressed: controller.playNext,
-                                      ),
-                                      MaterialCustomButton(
-                                        icon: const Icon(Icons.bookmark),
-                                        onPressed: controller.saveMemoryPoint,
-                                      ),
-                                      MaterialCustomButton(
-                                        icon: const Icon(Icons.list),
-                                        onPressed: controller.showPlaylistSheet,
-                                      ),
-                                    ],
-                                    bottomButtonBar: [
-                                      Expanded(
-                                        child: _VideoFileNameLabel(
-                                          controller: controller,
+                                        const SizedBox(width: 8),
+                                        const MaterialPositionIndicator(),
+                                        const Spacer(),
+                                        const MaterialFullscreenButton(),
+                                      ],
+                                    ),
+                                    fullscreen: MaterialVideoControlsThemeData(
+                                      seekGesture: true,
+                                      topButtonBar: [
+                                        const Spacer(),
+                                        MaterialCustomButton(
+                                          icon: const Icon(Icons.skip_previous),
+                                          onPressed: controller.playPrev,
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const MaterialPositionIndicator(),
-                                      const Spacer(),
-                                      const MaterialFullscreenButton(),
-                                    ],
-                                  ),
-                                  child: Video(
-                                    controller: controller.controller,
-                                    controls: (state) {
-                                      return Stack(
-                                        children: [
-                                          MaterialVideoControls(state),
-                                          Obx(() => AnimatedOpacity(
-                                                opacity: controller
-                                                        .showSeekFeedback.value
-                                                    ? 1.0
-                                                    : 0.0,
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                child: Center(
-                                                  child: Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 24,
-                                                        vertical: 12),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black54,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                    ),
-                                                    child: Text(
-                                                      controller
-                                                          .seekFeedback.value,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 32,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                        MaterialCustomButton(
+                                          icon: const Icon(Icons.skip_next),
+                                          onPressed: controller.playNext,
+                                        ),
+                                        MaterialCustomButton(
+                                          icon: const Icon(Icons.bookmark),
+                                          onPressed: controller.saveMemoryPoint,
+                                        ),
+                                        MaterialCustomButton(
+                                          icon: const Icon(Icons.list),
+                                          onPressed:
+                                              controller.showPlaylistSheet,
+                                        ),
+                                      ],
+                                      bottomButtonBar: [
+                                        Expanded(
+                                          child: _VideoFileNameLabel(
+                                            controller: controller,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const MaterialPositionIndicator(),
+                                        const Spacer(),
+                                        const MaterialFullscreenButton(),
+                                      ],
+                                    ),
+                                    child: Video(
+                                      controller: controller.controller,
+                                      controls: (state) {
+                                        return _DoubleTapHandler(
+                                          onDoubleTapLeft:
+                                              controller.seekBackward,
+                                          onDoubleTapRight:
+                                              controller.seekForward,
+                                          child: Stack(
+                                            children: [
+                                              AdaptiveVideoControls(state),
+                                              IgnorePointer(
+                                                child: Obx(() =>
+                                                    AnimatedOpacity(
+                                                      opacity: controller
+                                                              .showSeekFeedback
+                                                              .value
+                                                          ? 1.0
+                                                          : 0.0,
+                                                      duration: const Duration(
+                                                          milliseconds: 200),
+                                                      child: Center(
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal:
+                                                                      24,
+                                                                  vertical: 12),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color:
+                                                                Colors.black54,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8),
+                                                          ),
+                                                          child: Text(
+                                                            controller
+                                                                .seekFeedback
+                                                                .value,
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: 32,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              )),
-                                          Positioned.fill(
-                                            child: _DoubleTapHandler(
-                                              onDoubleTapLeft:
-                                                  controller.seekBackward,
-                                              onDoubleTapRight:
-                                                  controller.seekForward,
-                                            ),
+                                                    )),
+                                              ),
+                                              _HidePlaylistOnInteract(
+                                                controller: controller,
+                                              ),
+                                              _MemoryPointMarker(
+                                                controller: controller,
+                                                player: state
+                                                    .widget.controller.player,
+                                              ),
+                                            ],
                                           ),
-                                          _HidePlaylistOnInteract(
-                                            controller: controller,
-                                          ),
-                                          _MemoryPointMarker(
-                                            controller: controller,
-                                            player:
-                                                state.widget.controller.player,
-                                          ),
-                                        ],
-                                      );
-                                    },
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),
@@ -228,7 +289,7 @@ class MainVideoPage extends GetView<MainVideoController> {
                         top: Get.height * 0.2,
                         right: 0,
                         height: Get.height * 0.6,
-                        width: 200,
+                        width: 250,
                         // 固定宽度
                         child: Container(
                           color: Colors.black.withOpacity(0.5),
@@ -246,36 +307,168 @@ class MainVideoPage extends GetView<MainVideoController> {
                               ),
 
                               Expanded(
-                                child: Obx(() => ListView.builder(
-                                      controller:
-                                          controller.playlistScrollController,
-                                      itemExtent: 56,
-                                      itemCount: controller.playlist.length,
-                                      itemBuilder: (context, index) {
-                                        final name = controller
-                                            .playlist[index].path
-                                            .split('/')
-                                            .last;
-                                        return ListTile(
-                                          title: Obx(() => Text(
-                                                name,
-                                                style: TextStyle(
-                                                  color: (index ==
-                                                          controller
-                                                              .currentIndex
-                                                              .value)
-                                                      ? Colors.amber
-                                                      : Colors.white,
+                                child: Obx(() => controller.treePlaylist.isEmpty
+                                    ? const Center(
+                                        child: Text(
+                                          '暂无视频文件',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        controller:
+                                            controller.playlistScrollController,
+                                        itemCount:
+                                            controller.treePlaylist.length,
+                                        itemBuilder: (context, folderIndex) {
+                                          final folderData = controller
+                                              .treePlaylist[folderIndex];
+                                          final folderName =
+                                              folderData['folder'] as String;
+                                          final files =
+                                              folderData['files'] as List;
+                                          final isExpanded =
+                                              folderData['isExpanded']
+                                                  as RxBool;
+
+                                          return Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              // 文件夹标题（可点击展开/折叠）
+                                              if (folderName != '.')
+                                                InkWell(
+                                                  onTap: () {
+                                                    isExpanded.value =
+                                                        !isExpanded.value;
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 8),
+                                                    color: Colors.white
+                                                        .withOpacity(0.1),
+                                                    child: Row(
+                                                      children: [
+                                                        Obx(() => Icon(
+                                                              isExpanded.value
+                                                                  ? Icons
+                                                                      .folder_open
+                                                                  : Icons
+                                                                      .folder,
+                                                              color:
+                                                                  Colors.amber,
+                                                              size: 20,
+                                                            )),
+                                                        const SizedBox(
+                                                            width: 8),
+                                                        Expanded(
+                                                          child: Text(
+                                                            folderName,
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.amber,
+                                                              fontSize: 14,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ),
+                                                        Obx(() => Icon(
+                                                              isExpanded.value
+                                                                  ? Icons
+                                                                      .expand_less
+                                                                  : Icons
+                                                                      .expand_more,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 20,
+                                                            )),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ),
-                                              )),
-                                          onTap: () =>
-                                              controller.playIndex(index),
-                                          onLongPress: () => controller
-                                                  .showPlaylist.value =
-                                              !(controller.showPlaylist.value),
-                                        );
-                                      },
-                                    )),
+                                              // 文件列表
+                                              Obx(() => Visibility(
+                                                    visible: isExpanded.value,
+                                                    child: Column(
+                                                      children: files
+                                                          .map<Widget>((file) {
+                                                        final filePath =
+                                                            file.path;
+                                                        final fileName =
+                                                            filePath
+                                                                .split('/')
+                                                                .last;
+                                                        final globalIndex =
+                                                            controller
+                                                                .playlist
+                                                                .indexWhere((e) =>
+                                                                    e.path ==
+                                                                    filePath);
+
+                                                        return ListTile(
+                                                          dense: true,
+                                                          contentPadding:
+                                                              EdgeInsets.only(
+                                                                  left:
+                                                                      folderName ==
+                                                                              '.'
+                                                                          ? 12
+                                                                          : 32,
+                                                                  right: 8),
+                                                          title: Text(
+                                                            fileName,
+                                                            style: TextStyle(
+                                                              color: (globalIndex ==
+                                                                      controller
+                                                                          .currentIndex
+                                                                          .value)
+                                                                  ? Colors.amber
+                                                                  : Colors
+                                                                      .white,
+                                                              fontSize: 13,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                          trailing: IconButton(
+                                                            icon: const Icon(
+                                                                Icons
+                                                                    .delete_outline,
+                                                                color:
+                                                                    Colors.red,
+                                                                size: 18),
+                                                            onPressed: () {
+                                                              if (globalIndex >=
+                                                                  0) {
+                                                                controller
+                                                                    .showDeleteConfirmDialog(
+                                                                        globalIndex);
+                                                              }
+                                                            },
+                                                          ),
+                                                          onTap: () {
+                                                            if (globalIndex >=
+                                                                0) {
+                                                              controller.playIndex(
+                                                                  globalIndex);
+                                                            }
+                                                          },
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  )),
+                                            ],
+                                          );
+                                        },
+                                      )),
                               ),
                             ],
                           ),
@@ -285,10 +478,13 @@ class MainVideoPage extends GetView<MainVideoController> {
                   Obx(() {
                     final canSwitch = controller.playlist.isNotEmpty;
                     final canMark = controller.currentPath.value.isNotEmpty;
+                    if (!_showBottomTools) {
+                      return const SizedBox.shrink();
+                    }
                     return Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 30,
+                      bottom: 60,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -309,6 +505,30 @@ class MainVideoPage extends GetView<MainVideoController> {
                                 ? controller.togglePlaylistPanel
                                 : null,
                             child: const Icon(Icons.list, color: Colors.white),
+                          ),
+                          const SizedBox(width: 16),
+                          FloatingActionButton(
+                            heroTag: 'folder',
+                            mini: true,
+                            backgroundColor: Colors.black.withOpacity(0.2),
+                            onPressed: controller.requestStoragePermission,
+                            child: const Icon(Icons.folder_open,
+                                color: Colors.white),
+                          ),
+                          const SizedBox(width: 16),
+                          FloatingActionButton(
+                            heroTag: 'shuffle',
+                            mini: true,
+                            backgroundColor: Colors.black.withOpacity(0.2),
+                            onPressed: controller.toggleShuffleMode,
+                            child: Obx(() => Icon(
+                                  controller.isShuffleMode.value
+                                      ? Icons.shuffle
+                                      : Icons.shuffle_outlined,
+                                  color: controller.isShuffleMode.value
+                                      ? Colors.amber
+                                      : Colors.white,
+                                )),
                           ),
                           const SizedBox(width: 16),
                           FloatingActionButton(
@@ -335,7 +555,7 @@ class MainVideoPage extends GetView<MainVideoController> {
                   }),
                   // 双击检测层 - 放在最下面确保能接收事件
                 ],
-              );
+              ));
             },
           ),
         ),
@@ -506,10 +726,12 @@ class _DoubleTapHandler extends StatefulWidget {
   const _DoubleTapHandler({
     required this.onDoubleTapLeft,
     required this.onDoubleTapRight,
+    required this.child,
   });
 
   final VoidCallback onDoubleTapLeft;
   final VoidCallback onDoubleTapRight;
+  final Widget child;
 
   @override
   State<_DoubleTapHandler> createState() => _DoubleTapHandlerState();
@@ -544,6 +766,7 @@ class _DoubleTapHandlerState extends State<_DoubleTapHandler> {
     return Listener(
       onPointerDown: _handleTap,
       behavior: HitTestBehavior.translucent,
+      child: widget.child,
     );
   }
 }

@@ -7,6 +7,10 @@ class MainFlutterWindow: NSWindow {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
+    self.titleVisibility = .hidden
+    // self.titlebarAppearsTransparent = true
+    // self.styleMask.insert(.fullSizeContentView)
+    // self.styleMask.remove(.titled)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

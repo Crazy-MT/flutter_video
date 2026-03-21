@@ -34,12 +34,15 @@ class MainVideoController extends GetxController {
   static const platform = MethodChannel('com.bomanyi.ai/channel');
   var currentPath = ''.obs;
   var playlist = [].obs;
+  var treePlaylist = [].obs; // 树形播放列表数据
 
   var currentIndex = 0.obs;
   var showPlaylist = false.obs; // 控制是否显示列表
   var memoryPointMs = 0.obs;
   var seekFeedback = ''.obs;
   var showSeekFeedback = false.obs;
+  var isShuffleMode = true.obs; // 随机播放模式（默认开启）
+  var _hasTriggeredAutoPlay = false; // 防止重复触发自动播放
   final playlistScrollController = ScrollController();
   final playlistSheetScrollController = ScrollController();
 
@@ -61,6 +64,18 @@ class MainVideoController extends GetxController {
     await common.initCommon();
 
     platform.setMethodCallHandler(_handleMethodCall);
+
+    // 监听播放完成事件
+    player.stream.completed.listen((completed) {
+      if (completed && playlist.isNotEmpty && !_hasTriggeredAutoPlay) {
+        _hasTriggeredAutoPlay = true;
+        // 播放完成时自动播放下一个
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _onPlaybackCompleted();
+        });
+      }
+    });
+
     // requestStoragePermission();
   }
 
@@ -108,23 +123,110 @@ class MainVideoController extends GetxController {
 
   void playFile(String path) async {
     lLog('MainVideoController.playFile ${path} ');
+    _hasTriggeredAutoPlay = false; // 重置自动播放标志
     await player.open(Media(path));
     _loadMemoryPoint(path);
   }
 
   void pickFolder() async {
-    lLog('MainVideoController.pickFolder } ');
+    lLog('MainVideoController.pickFolder');
     String? folderPath = await FilePicker.platform.getDirectoryPath();
     if (folderPath != null) {
       print('选中的文件夹: $folderPath');
 
       final dir = Directory(folderPath);
-      playlist.value = dir.listSync(recursive: true);
+      final allEntities = dir.listSync(recursive: true);
 
-      playlist.sort((a, b) => a.path.compareTo(b.path));
-      // showPlaylist.value = true;
-      playIndex(Random().nextInt(playlist.length));
+      // 保留所有文件
+      playlist.value = allEntities.where((entity) => entity is File).toList();
+
+      playlist.sort((a, b) => _naturalCompare(a.path, b.path));
+
+      // 构建树形播放列表
+      _buildTreePlaylist(folderPath);
+
+      // 根据随机播放模式决定播放策略
+      if (playlist.isNotEmpty) {
+        if (isShuffleMode.value) {
+          // 随机播放模式：随机选择一个文件开始播放
+          playIndex(Random().nextInt(playlist.length));
+        } else {
+          // 顺序播放模式：从第一个文件开始播放
+          playIndex(0);
+        }
+      }
     }
+  }
+
+  void _buildTreePlaylist(String rootPath) {
+    treePlaylist.clear();
+    final dir = Directory(rootPath);
+    final entities = dir.listSync(recursive: true);
+
+    // 按文件夹分组
+    Map<String, List<FileSystemEntity>> folderMap = {};
+
+    for (var entity in entities) {
+      if (entity is File) {
+        final relativePath = p.relative(entity.path, from: rootPath);
+        final folder = p.dirname(relativePath);
+        if (!folderMap.containsKey(folder)) {
+          folderMap[folder] = [];
+        }
+        folderMap[folder]!.add(entity);
+      }
+    }
+
+    // 构建树形结构
+    folderMap.forEach((folder, files) {
+      files.sort((a, b) => _naturalCompare(a.path, b.path));
+      treePlaylist.add({
+        'folder': folder,
+        'files': files,
+        'isExpanded': true.obs,
+      });
+    });
+
+    // 排序：根目录文件夹在前
+    treePlaylist.sort((a, b) {
+      if (a['folder'] == '.') return -1;
+      if (b['folder'] == '.') return 1;
+      return (a['folder'] as String).compareTo(b['folder'] as String);
+    });
+  }
+
+  static int _naturalCompare(String a, String b) {
+    final re = RegExp(r'(\d+|\D+)');
+    final aParts = re.allMatches(a).map((m) => m.group(0)!).toList();
+    final bParts = re.allMatches(b).map((m) => m.group(0)!).toList();
+    final len = aParts.length < bParts.length ? aParts.length : bParts.length;
+    for (int i = 0; i < len; i++) {
+      final aIsNum = aParts[i].contains(RegExp(r'^\d+$'));
+      final bIsNum = bParts[i].contains(RegExp(r'^\d+$'));
+      if (aIsNum && bIsNum) {
+        final cmp = int.parse(aParts[i]).compareTo(int.parse(bParts[i]));
+        if (cmp != 0) return cmp;
+      } else {
+        final cmp = aParts[i].toLowerCase().compareTo(bParts[i].toLowerCase());
+        if (cmp != 0) return cmp;
+      }
+    }
+    return aParts.length.compareTo(bParts.length);
+  }
+
+  bool _isVideoFile(String path) {
+    final ext = p.extension(path).toLowerCase();
+    return [
+      '.mp4',
+      '.avi',
+      '.mkv',
+      '.mov',
+      '.wmv',
+      '.flv',
+      '.webm',
+      '.m4v',
+      '.3gp'
+    ].contains(ext);
   }
 
   void setPageName(String newName) {
@@ -171,6 +273,16 @@ class MainVideoController extends GetxController {
       nextIndex = 0;
     }
     playIndex(nextIndex);
+  }
+
+  void _onPlaybackCompleted() {
+    // 播放完成时自动播放下一个
+    playNext();
+  }
+
+  void toggleShuffleMode() {
+    isShuffleMode.value = !isShuffleMode.value;
+    Utils.showToastMsg(isShuffleMode.value ? '随机播放已开启' : '随机播放已关闭');
   }
 
   void seekBackward() {
@@ -359,4 +471,86 @@ class MainVideoController extends GetxController {
           });
     }
   */
+
+  void showDeleteConfirmDialog(int index) {
+    if (playlist.isEmpty || index < 0 || index >= playlist.length) {
+      return;
+    }
+    final fileName = p.basename(playlist[index].path);
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除文件 "$fileName" 吗？\n\n注意：此操作将永久删除该文件！'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              _deleteFileFromPlaylist(index);
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteFileFromPlaylist(int index) {
+    if (playlist.isEmpty || index < 0 || index >= playlist.length) {
+      return;
+    }
+
+    final deletedPath = playlist[index].path;
+    final wasPlaying = currentPath.value == deletedPath;
+
+    // 删除实际文件
+    try {
+      final file = File(deletedPath);
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    } catch (e) {
+      Utils.showToastMsg('删除文件失败: $e');
+      return;
+    }
+
+    // 从播放列表中移除
+    playlist.removeAt(index);
+
+    // 更新树形播放列表（需要重建整个树形结构）
+    if (playlist.isNotEmpty) {
+      final rootPath = p.dirname(playlist.first.path);
+      _buildTreePlaylist(rootPath);
+    } else {
+      treePlaylist.clear();
+    }
+
+    // 如果删除的是当前正在播放的视频
+    if (wasPlaying) {
+      if (playlist.isEmpty) {
+        // 播放列表为空，停止播放
+        player.stop();
+        currentPath.value = '';
+        currentIndex.value = 0;
+      } else {
+        // 播放下一个视频
+        if (index >= playlist.length) {
+          playIndex(0);
+        } else {
+          playIndex(index);
+        }
+      }
+    } else {
+      // 更新当前索引（如果删除的视频在当前播放视频之前）
+      if (index < currentIndex.value) {
+        currentIndex.value--;
+      }
+    }
+
+    Utils.showToastMsg('文件已删除');
+  }
 }
