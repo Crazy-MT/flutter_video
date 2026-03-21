@@ -153,19 +153,18 @@ class MainVideoPage extends GetView<MainVideoController> {
                                       children: [
                                         MaterialVideoControls(state),
                                         Obx(() => AnimatedOpacity(
-                                              opacity:
-                                                  controller.showSeekFeedback
-                                                          .value
-                                                      ? 1.0
-                                                      : 0.0,
+                                              opacity: controller
+                                                      .showSeekFeedback.value
+                                                  ? 1.0
+                                                  : 0.0,
                                               duration: const Duration(
                                                   milliseconds: 200),
                                               child: Center(
                                                 child: Container(
                                                   padding: const EdgeInsets
                                                       .symmetric(
-                                                          horizontal: 24,
-                                                          vertical: 12),
+                                                      horizontal: 24,
+                                                      vertical: 12),
                                                   decoration: BoxDecoration(
                                                     color: Colors.black54,
                                                     borderRadius:
@@ -479,10 +478,7 @@ class _HidePlaylistOnInteract extends StatelessWidget {
           behavior: HitTestBehavior.translucent,
           onPointerDown: (_) => _hide(),
           onPointerSignal: (_) => _hide(),
-          child: MouseRegion(
-            onHover: (_) => _hide(),
-            child: const SizedBox.expand(),
-          ),
+          child: const SizedBox.expand(),
         ),
       );
     });
