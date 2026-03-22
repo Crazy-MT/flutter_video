@@ -93,90 +93,42 @@ class _MainVideoPageState extends State<MainVideoPage> {
             errorMsg: controller.errorMsg.value,
             builder: (BuildContext context) {
               return Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) => _showBottomToolsTemporarily(),
-                child: Stack(
-                children: [
-                  Obx(() => Center(
-                        child: controller.currentPath.value.isEmpty
-                            ? InkWell(
-                                onTap: () {
-                                  controller.requestStoragePermission();
-                                },
-                                child: const Text(
-                                  '还没有接收到视频\n从文件管理器打开一个视频吧～',
-                                  style: TextStyle(color: Colors.white),
-                                  textAlign: TextAlign.center,
-                                ),
-                              )
-                            : MaterialDesktopVideoControlsTheme(
-                                normal: MaterialDesktopVideoControlsThemeData(
-                                  bottomButtonBar: [
-                                    const MaterialDesktopSkipPreviousButton(),
-                                    const MaterialDesktopPlayOrPauseButton(),
-                                    const MaterialDesktopSkipNextButton(),
-                                    const MaterialDesktopVolumeButton(),
-                                    Expanded(
-                                      child: _VideoFileNameLabel(
-                                        controller: controller,
-                                      ),
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) => _showBottomToolsTemporarily(),
+                  child: Stack(
+                    children: [
+                      Obx(() => Center(
+                            child: controller.currentPath.value.isEmpty
+                                ? InkWell(
+                                    onTap: () {
+                                      controller.requestStoragePermission();
+                                    },
+                                    child: const Text(
+                                      '还没有接收到视频\n从文件管理器打开一个视频吧～',
+                                      style: TextStyle(color: Colors.white),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    const MaterialDesktopPositionIndicator(),
-                                    const Spacer(),
-                                    const MaterialDesktopFullscreenButton(),
-                                  ],
-                                ),
-                                fullscreen:
-                                    MaterialDesktopVideoControlsThemeData(
-                                  topButtonBar: [
-                                    const Spacer(),
-                                    MaterialCustomButton(
-                                      icon: const Icon(Icons.skip_previous),
-                                      onPressed: controller.playPrev,
-                                    ),
-                                    MaterialCustomButton(
-                                      icon: const Icon(Icons.skip_next),
-                                      onPressed: controller.playNext,
-                                    ),
-                                    MaterialCustomButton(
-                                      icon: const Icon(Icons.list),
-                                      onPressed: controller.showPlaylistSheet,
-                                    ),
-                                  ],
-                                  bottomButtonBar: [
-                                    const MaterialDesktopSkipPreviousButton(),
-                                    const MaterialDesktopPlayOrPauseButton(),
-                                    const MaterialDesktopSkipNextButton(),
-                                    const MaterialDesktopVolumeButton(),
-                                    Expanded(
-                                      child: _VideoFileNameLabel(
-                                        controller: controller,
-                                      ),
-                                    ),
-                                    const MaterialDesktopPositionIndicator(),
-                                    const Spacer(),
-                                    const MaterialDesktopFullscreenButton(),
-                                  ],
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 30),
-                                  child: MaterialVideoControlsTheme(
-                                    normal: MaterialVideoControlsThemeData(
-                                      seekGesture: true,
+                                  )
+                                : MaterialDesktopVideoControlsTheme(
+                                    normal:
+                                        MaterialDesktopVideoControlsThemeData(
                                       bottomButtonBar: [
+                                        const MaterialDesktopSkipPreviousButton(),
+                                        const MaterialDesktopPlayOrPauseButton(),
+                                        const MaterialDesktopSkipNextButton(),
+                                        const MaterialDesktopVolumeButton(),
                                         Expanded(
                                           child: _VideoFileNameLabel(
                                             controller: controller,
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        const MaterialPositionIndicator(),
+                                        const MaterialDesktopPositionIndicator(),
                                         const Spacer(),
-                                        const MaterialFullscreenButton(),
+                                        const MaterialDesktopFullscreenButton(),
                                       ],
                                     ),
-                                    fullscreen: MaterialVideoControlsThemeData(
-                                      seekGesture: true,
+                                    fullscreen:
+                                        MaterialDesktopVideoControlsThemeData(
                                       topButtonBar: [
                                         const Spacer(),
                                         MaterialCustomButton(
@@ -188,374 +140,443 @@ class _MainVideoPageState extends State<MainVideoPage> {
                                           onPressed: controller.playNext,
                                         ),
                                         MaterialCustomButton(
-                                          icon: const Icon(Icons.bookmark),
-                                          onPressed: controller.saveMemoryPoint,
-                                        ),
-                                        MaterialCustomButton(
                                           icon: const Icon(Icons.list),
                                           onPressed:
                                               controller.showPlaylistSheet,
                                         ),
                                       ],
                                       bottomButtonBar: [
+                                        const MaterialDesktopSkipPreviousButton(),
+                                        const MaterialDesktopPlayOrPauseButton(),
+                                        const MaterialDesktopSkipNextButton(),
+                                        const MaterialDesktopVolumeButton(),
                                         Expanded(
                                           child: _VideoFileNameLabel(
                                             controller: controller,
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        const MaterialPositionIndicator(),
+                                        const MaterialDesktopPositionIndicator(),
                                         const Spacer(),
-                                        const MaterialFullscreenButton(),
+                                        const MaterialDesktopFullscreenButton(),
                                       ],
                                     ),
-                                    child: Video(
-                                      controller: controller.controller,
-                                      controls: (state) {
-                                        return _DoubleTapHandler(
-                                          onDoubleTapLeft:
-                                              controller.seekBackward,
-                                          onDoubleTapRight:
-                                              controller.seekForward,
-                                          child: Stack(
-                                            children: [
-                                              AdaptiveVideoControls(state),
-                                              IgnorePointer(
-                                                child: Obx(() =>
-                                                    AnimatedOpacity(
-                                                      opacity: controller
-                                                              .showSeekFeedback
-                                                              .value
-                                                          ? 1.0
-                                                          : 0.0,
-                                                      duration: const Duration(
-                                                          milliseconds: 200),
-                                                      child: Center(
-                                                        child: Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal:
-                                                                      24,
-                                                                  vertical: 12),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color:
-                                                                Colors.black54,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8),
-                                                          ),
-                                                          child: Text(
-                                                            controller
-                                                                .seekFeedback
-                                                                .value,
-                                                            style:
-                                                                const TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontSize: 32,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    )),
-                                              ),
-                                              _HidePlaylistOnInteract(
+                                    child: Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 30),
+                                      child: MaterialVideoControlsTheme(
+                                        normal: MaterialVideoControlsThemeData(
+                                          seekGesture: true,
+                                          bottomButtonBar: [
+                                            Expanded(
+                                              child: _VideoFileNameLabel(
                                                 controller: controller,
                                               ),
-                                              _MemoryPointMarker(
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const MaterialPositionIndicator(),
+                                            const Spacer(),
+                                            const MaterialFullscreenButton(),
+                                          ],
+                                        ),
+                                        fullscreen:
+                                            MaterialVideoControlsThemeData(
+                                          seekGesture: true,
+                                          topButtonBar: [
+                                            const Spacer(),
+                                            MaterialCustomButton(
+                                              icon: const Icon(
+                                                  Icons.skip_previous),
+                                              onPressed: controller.playPrev,
+                                            ),
+                                            MaterialCustomButton(
+                                              icon: const Icon(Icons.skip_next),
+                                              onPressed: controller.playNext,
+                                            ),
+                                            MaterialCustomButton(
+                                              icon: const Icon(Icons.bookmark),
+                                              onPressed:
+                                                  controller.saveMemoryPoint,
+                                            ),
+                                            MaterialCustomButton(
+                                              icon: const Icon(Icons.list),
+                                              onPressed:
+                                                  controller.showPlaylistSheet,
+                                            ),
+                                          ],
+                                          bottomButtonBar: [
+                                            Expanded(
+                                              child: _VideoFileNameLabel(
                                                 controller: controller,
-                                                player: state
-                                                    .widget.controller.player,
                                               ),
-                                            ],
-                                          ),
-                                        );
-                                      },
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const MaterialPositionIndicator(),
+                                            const Spacer(),
+                                            const MaterialFullscreenButton(),
+                                          ],
+                                        ),
+                                        child: Video(
+                                          controller: controller.controller,
+                                          controls: (state) {
+                                            return _DoubleTapHandler(
+                                              onDoubleTapLeft:
+                                                  controller.seekBackward,
+                                              onDoubleTapRight:
+                                                  controller.seekForward,
+                                              child: Stack(
+                                                children: [
+                                                  AdaptiveVideoControls(state),
+                                                  IgnorePointer(
+                                                    child:
+                                                        Obx(
+                                                            () =>
+                                                                AnimatedOpacity(
+                                                                  opacity: controller
+                                                                          .showSeekFeedback
+                                                                          .value
+                                                                      ? 1.0
+                                                                      : 0.0,
+                                                                  duration: const Duration(
+                                                                      milliseconds:
+                                                                          200),
+                                                                  child: Center(
+                                                                    child:
+                                                                        Container(
+                                                                      padding: const EdgeInsets
+                                                                          .symmetric(
+                                                                          horizontal:
+                                                                              24,
+                                                                          vertical:
+                                                                              12),
+                                                                      decoration:
+                                                                          BoxDecoration(
+                                                                        color: Colors
+                                                                            .black54,
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(8),
+                                                                      ),
+                                                                      child:
+                                                                          Text(
+                                                                        controller
+                                                                            .seekFeedback
+                                                                            .value,
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          color:
+                                                                              Colors.white,
+                                                                          fontSize:
+                                                                              32,
+                                                                          fontWeight:
+                                                                              FontWeight.bold,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                )),
+                                                  ),
+                                                  _HidePlaylistOnInteract(
+                                                    controller: controller,
+                                                  ),
+                                                  _MemoryPointMarker(
+                                                    controller: controller,
+                                                    player: state.widget
+                                                        .controller.player,
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                      )),
-                  // ✅ 半透明播放列表（覆盖在右边）
-                  Obx(() => Visibility(
-                      visible: controller.showPlaylist.value,
-                      child: Positioned(
-                        top: Get.height * 0.2,
-                        right: 0,
-                        height: Get.height * 0.6,
-                        width: 250,
-                        // 固定宽度
-                        child: Container(
-                          color: Colors.black.withOpacity(0.5),
-                          child: Column(
-                            children: [
-                              // 顶部关闭按钮
-                              Align(
-                                alignment: Alignment.topRight,
-                                child: IconButton(
-                                  icon: const Icon(Icons.close,
-                                      color: Colors.white),
-                                  onPressed: () =>
-                                      controller.showPlaylist.value = false,
-                                ),
-                              ),
+                          )),
+                      // ✅ 半透明播放列表（覆盖在右边）
+                      Obx(() => Visibility(
+                          visible: controller.showPlaylist.value,
+                          child: Positioned(
+                            top: Get.height * 0.2,
+                            right: 0,
+                            height: Get.height * 0.6,
+                            width: 250,
+                            // 固定宽度
+                            child: Container(
+                              color: Colors.black.withOpacity(0.5),
+                              child: Column(
+                                children: [
+                                  // 顶部关闭按钮
+                                  Align(
+                                    alignment: Alignment.topRight,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.close,
+                                          color: Colors.white),
+                                      onPressed: () =>
+                                          controller.showPlaylist.value = false,
+                                    ),
+                                  ),
 
-                              Expanded(
-                                child: Obx(() => controller.treePlaylist.isEmpty
-                                    ? const Center(
-                                        child: Text(
-                                          '暂无视频文件',
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      )
-                                    : ListView.builder(
-                                        controller:
-                                            controller.playlistScrollController,
-                                        itemCount:
-                                            controller.treePlaylist.length,
-                                        itemBuilder: (context, folderIndex) {
-                                          final folderData = controller
-                                              .treePlaylist[folderIndex];
-                                          final folderName =
-                                              folderData['folder'] as String;
-                                          final files =
-                                              folderData['files'] as List;
-                                          final isExpanded =
-                                              folderData['isExpanded']
-                                                  as RxBool;
+                                  Expanded(
+                                    child: Obx(() => controller
+                                            .treePlaylist.isEmpty
+                                        ? const Center(
+                                            child: Text(
+                                              '暂无视频文件',
+                                              style: TextStyle(
+                                                  color: Colors.white),
+                                            ),
+                                          )
+                                        : ListView.builder(
+                                            controller: controller
+                                                .playlistScrollController,
+                                            itemCount:
+                                                controller.treePlaylist.length,
+                                            itemBuilder:
+                                                (context, folderIndex) {
+                                              final folderData = controller
+                                                  .treePlaylist[folderIndex];
+                                              final folderName =
+                                                  folderData['folder']
+                                                      as String;
+                                              final files =
+                                                  folderData['files'] as List;
+                                              final isExpanded =
+                                                  folderData['isExpanded']
+                                                      as RxBool;
 
-                                          return Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // 文件夹标题（可点击展开/折叠）
-                                              if (folderName != '.')
-                                                InkWell(
-                                                  onTap: () {
-                                                    isExpanded.value =
-                                                        !isExpanded.value;
-                                                  },
-                                                  child: Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 12,
-                                                        vertical: 8),
-                                                    color: Colors.white
-                                                        .withOpacity(0.1),
-                                                    child: Row(
-                                                      children: [
-                                                        Obx(() => Icon(
-                                                              isExpanded.value
-                                                                  ? Icons
-                                                                      .folder_open
-                                                                  : Icons
-                                                                      .folder,
-                                                              color:
-                                                                  Colors.amber,
-                                                              size: 20,
-                                                            )),
-                                                        const SizedBox(
-                                                            width: 8),
-                                                        Expanded(
-                                                          child: Text(
-                                                            folderName,
-                                                            style:
-                                                                const TextStyle(
-                                                              color:
-                                                                  Colors.amber,
-                                                              fontSize: 14,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
+                                              return Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  // 文件夹标题（可点击展开/折叠）
+                                                  if (folderName != '.')
+                                                    InkWell(
+                                                      onTap: () {
+                                                        isExpanded.value =
+                                                            !isExpanded.value;
+                                                      },
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 12,
+                                                                vertical: 8),
+                                                        color: Colors.white
+                                                            .withOpacity(0.1),
+                                                        child: Row(
+                                                          children: [
+                                                            Obx(() => Icon(
+                                                                  isExpanded
+                                                                          .value
+                                                                      ? Icons
+                                                                          .folder_open
+                                                                      : Icons
+                                                                          .folder,
+                                                                  color: Colors
+                                                                      .amber,
+                                                                  size: 20,
+                                                                )),
+                                                            const SizedBox(
+                                                                width: 8),
+                                                            Expanded(
+                                                              child: Text(
+                                                                folderName,
+                                                                style:
+                                                                    const TextStyle(
+                                                                  color: Colors
+                                                                      .amber,
+                                                                  fontSize: 14,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
                                                             ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                          ),
+                                                            Obx(() => Icon(
+                                                                  isExpanded
+                                                                          .value
+                                                                      ? Icons
+                                                                          .expand_less
+                                                                      : Icons
+                                                                          .expand_more,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  size: 20,
+                                                                )),
+                                                          ],
                                                         ),
-                                                        Obx(() => Icon(
-                                                              isExpanded.value
-                                                                  ? Icons
-                                                                      .expand_less
-                                                                  : Icons
-                                                                      .expand_more,
-                                                              color:
-                                                                  Colors.white,
-                                                              size: 20,
-                                                            )),
-                                                      ],
+                                                      ),
                                                     ),
-                                                  ),
-                                                ),
-                                              // 文件列表
-                                              Obx(() => Visibility(
-                                                    visible: isExpanded.value,
-                                                    child: Column(
-                                                      children: files
-                                                          .map<Widget>((file) {
-                                                        final filePath =
-                                                            file.path;
-                                                        final fileName =
-                                                            filePath
-                                                                .split('/')
-                                                                .last;
-                                                        final globalIndex =
-                                                            controller
-                                                                .playlist
-                                                                .indexWhere((e) =>
-                                                                    e.path ==
-                                                                    filePath);
+                                                  // 文件列表
+                                                  Obx(() => Visibility(
+                                                        visible:
+                                                            isExpanded.value,
+                                                        child: Column(
+                                                          children: files
+                                                              .map<Widget>(
+                                                                  (file) {
+                                                            final filePath =
+                                                                file.path;
+                                                            final fileName =
+                                                                filePath
+                                                                    .split('/')
+                                                                    .last;
+                                                            final globalIndex =
+                                                                controller
+                                                                    .playlist
+                                                                    .indexWhere((e) =>
+                                                                        e.path ==
+                                                                        filePath);
 
-                                                        return ListTile(
-                                                          dense: true,
-                                                          contentPadding:
-                                                              EdgeInsets.only(
-                                                                  left:
-                                                                      folderName ==
+                                                            return ListTile(
+                                                              dense: true,
+                                                              contentPadding:
+                                                                  EdgeInsets.only(
+                                                                      left: folderName ==
                                                                               '.'
                                                                           ? 12
                                                                           : 32,
-                                                                  right: 8),
-                                                          title: Text(
-                                                            fileName,
-                                                            style: TextStyle(
-                                                              color: (globalIndex ==
-                                                                      controller
-                                                                          .currentIndex
-                                                                          .value)
-                                                                  ? Colors.amber
-                                                                  : Colors
-                                                                      .white,
-                                                              fontSize: 13,
-                                                            ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                          ),
-                                                          trailing: IconButton(
-                                                            icon: const Icon(
-                                                                Icons
-                                                                    .delete_outline,
-                                                                color:
-                                                                    Colors.red,
-                                                                size: 18),
-                                                            onPressed: () {
-                                                              if (globalIndex >=
-                                                                  0) {
-                                                                controller
-                                                                    .showDeleteConfirmDialog(
-                                                                        globalIndex);
-                                                              }
-                                                            },
-                                                          ),
-                                                          onTap: () {
-                                                            if (globalIndex >=
-                                                                0) {
-                                                              controller.playIndex(
-                                                                  globalIndex);
-                                                            }
-                                                          },
-                                                        );
-                                                      }).toList(),
-                                                    ),
-                                                  )),
-                                            ],
-                                          );
-                                        },
-                                      )),
+                                                                      right: 8),
+                                                              title: Text(
+                                                                fileName,
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: (globalIndex ==
+                                                                          controller
+                                                                              .currentIndex
+                                                                              .value)
+                                                                      ? Colors
+                                                                          .amber
+                                                                      : Colors
+                                                                          .white,
+                                                                  fontSize: 13,
+                                                                ),
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
+                                                              trailing:
+                                                                  IconButton(
+                                                                icon: const Icon(
+                                                                    Icons
+                                                                        .delete_outline,
+                                                                    color: Colors
+                                                                        .red,
+                                                                    size: 18),
+                                                                onPressed: () {
+                                                                  if (globalIndex >=
+                                                                      0) {
+                                                                    controller
+                                                                        .showDeleteConfirmDialog(
+                                                                            globalIndex);
+                                                                  }
+                                                                },
+                                                              ),
+                                                              onTap: () {
+                                                                if (globalIndex >=
+                                                                    0) {
+                                                                  controller
+                                                                      .playIndex(
+                                                                          globalIndex);
+                                                                }
+                                                              },
+                                                            );
+                                                          }).toList(),
+                                                        ),
+                                                      )),
+                                                ],
+                                              );
+                                            },
+                                          )),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ))),
+
+                      Obx(() {
+                        final canSwitch = controller.playlist.isNotEmpty;
+                        final canMark = controller.currentPath.value.isNotEmpty;
+                        if (!_showBottomTools) {
+                          return const SizedBox.shrink();
+                        }
+                        return Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 60,
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 16,
+                            runSpacing: 8,
+                            children: [
+                              FloatingActionButton(
+                                heroTag: 'prev',
+                                mini: true,
+                                backgroundColor: Colors.black.withOpacity(0.2),
+                                onPressed:
+                                    canSwitch ? controller.playPrev : null,
+                                child: const Icon(Icons.skip_previous,
+                                    color: Colors.white),
+                              ),
+                              FloatingActionButton(
+                                heroTag: 'list',
+                                mini: true,
+                                backgroundColor: Colors.black.withOpacity(0.2),
+                                onPressed: canSwitch
+                                    ? controller.togglePlaylistPanel
+                                    : null,
+                                child:
+                                    const Icon(Icons.list, color: Colors.white),
+                              ),
+                              FloatingActionButton(
+                                heroTag: 'folder',
+                                mini: true,
+                                backgroundColor: Colors.black.withOpacity(0.2),
+                                onPressed: controller.requestStoragePermission,
+                                child: const Icon(Icons.folder_open,
+                                    color: Colors.white),
+                              ),
+                              FloatingActionButton(
+                                heroTag: 'shuffle',
+                                mini: true,
+                                backgroundColor: Colors.black.withOpacity(0.2),
+                                onPressed: controller.toggleShuffleMode,
+                                child: Obx(() => Icon(
+                                      controller.isShuffleMode.value
+                                          ? Icons.shuffle
+                                          : Icons.shuffle_outlined,
+                                      color: controller.isShuffleMode.value
+                                          ? Colors.amber
+                                          : Colors.white,
+                                    )),
+                              ),
+                              FloatingActionButton(
+                                heroTag: 'bookmark',
+                                mini: true,
+                                backgroundColor: Colors.black.withOpacity(0.2),
+                                onPressed:
+                                    canMark ? controller.saveMemoryPoint : null,
+                                child: const Icon(Icons.bookmark,
+                                    color: Colors.white),
+                              ),
+                              FloatingActionButton(
+                                heroTag: 'next',
+                                mini: true,
+                                backgroundColor: Colors.black.withOpacity(0.2),
+                                onPressed:
+                                    canSwitch ? controller.playNext : null,
+                                child: const Icon(Icons.skip_next,
+                                    color: Colors.white),
                               ),
                             ],
                           ),
-                        ),
-                      ))),
-
-                  Obx(() {
-                    final canSwitch = controller.playlist.isNotEmpty;
-                    final canMark = controller.currentPath.value.isNotEmpty;
-                    if (!_showBottomTools) {
-                      return const SizedBox.shrink();
-                    }
-                    return Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 60,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          FloatingActionButton(
-                            heroTag: 'prev',
-                            mini: true,
-                            backgroundColor: Colors.black.withOpacity(0.2),
-                            onPressed: canSwitch ? controller.playPrev : null,
-                            child: const Icon(Icons.skip_previous,
-                                color: Colors.white),
-                          ),
-                          const SizedBox(width: 16),
-                          FloatingActionButton(
-                            heroTag: 'list',
-                            mini: true,
-                            backgroundColor: Colors.black.withOpacity(0.2),
-                            onPressed: canSwitch
-                                ? controller.togglePlaylistPanel
-                                : null,
-                            child: const Icon(Icons.list, color: Colors.white),
-                          ),
-                          const SizedBox(width: 16),
-                          FloatingActionButton(
-                            heroTag: 'folder',
-                            mini: true,
-                            backgroundColor: Colors.black.withOpacity(0.2),
-                            onPressed: controller.requestStoragePermission,
-                            child: const Icon(Icons.folder_open,
-                                color: Colors.white),
-                          ),
-                          const SizedBox(width: 16),
-                          FloatingActionButton(
-                            heroTag: 'shuffle',
-                            mini: true,
-                            backgroundColor: Colors.black.withOpacity(0.2),
-                            onPressed: controller.toggleShuffleMode,
-                            child: Obx(() => Icon(
-                                  controller.isShuffleMode.value
-                                      ? Icons.shuffle
-                                      : Icons.shuffle_outlined,
-                                  color: controller.isShuffleMode.value
-                                      ? Colors.amber
-                                      : Colors.white,
-                                )),
-                          ),
-                          const SizedBox(width: 16),
-                          FloatingActionButton(
-                            heroTag: 'bookmark',
-                            mini: true,
-                            backgroundColor: Colors.black.withOpacity(0.2),
-                            onPressed:
-                                canMark ? controller.saveMemoryPoint : null,
-                            child:
-                                const Icon(Icons.bookmark, color: Colors.white),
-                          ),
-                          const SizedBox(width: 16),
-                          FloatingActionButton(
-                            heroTag: 'next',
-                            mini: true,
-                            backgroundColor: Colors.black.withOpacity(0.2),
-                            onPressed: canSwitch ? controller.playNext : null,
-                            child: const Icon(Icons.skip_next,
-                                color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  // 双击检测层 - 放在最下面确保能接收事件
-                ],
-              ));
+                        );
+                      }),
+                      // 双击检测层 - 放在最下面确保能接收事件
+                    ],
+                  ));
             },
           ),
         ),
