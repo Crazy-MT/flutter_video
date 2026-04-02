@@ -130,69 +130,158 @@ class MainVideoController extends GetxController {
 
   void pickFolder() async {
     lLog('MainVideoController.pickFolder');
-    String? folderPath = await FilePicker.platform.getDirectoryPath();
-    if (folderPath != null) {
-      print('选中的文件夹: $folderPath');
+    try {
+      // 针对iOS平台，使用不同的文件选择策略
+      if (Platform.isIOS) {
+        // 在iOS上，使用文件选择器选择单个文件，然后获取其所在目录
+        final result = await FilePicker.platform.pickFiles(
+          // type: FileType.video,
+          allowMultiple: true,
+        );
 
-      final dir = Directory(folderPath);
-      final allEntities = dir.listSync(recursive: true);
+        if (result != null && result.files.isNotEmpty) {
+          // 获取第一个文件的目录路径
+          final firstFile = result.files.first;
+          final folderPath = p.dirname(firstFile.path!);
+          print('选中的文件夹: $folderPath');
+          lLog('MainVideoController.pickFolder 1 ${folderPath} ');
 
-      // 保留所有文件
-      playlist.value = allEntities.where((entity) => entity is File).toList();
+          // 处理选中的文件
+          final files = result.files.map((file) => File(file.path!)).toList();
 
-      playlist.sort((a, b) => _naturalCompare(a.path, b.path));
+          // 排序
+          files.sort((a, b) => _naturalCompare(a.path, b.path));
 
-      // 构建树形播放列表
-      _buildTreePlaylist(folderPath);
+          // 更新UI
+          Get.back();
+          playlist.value = files;
+          lLog('MainVideoController.pickFolder ${playlist} ');
 
-      // 根据随机播放模式决定播放策略
-      if (playlist.isNotEmpty) {
-        if (isShuffleMode.value) {
-          // 随机播放模式：随机选择一个文件开始播放
-          playIndex(Random().nextInt(playlist.length));
-        } else {
-          // 顺序播放模式：从第一个文件开始播放
-          playIndex(0);
+          // 构建树形播放列表
+          _buildTreePlaylist(folderPath);
+
+          // 根据随机播放模式决定播放策略
+          if (playlist.isNotEmpty) {
+            if (isShuffleMode.value) {
+              playIndex(Random().nextInt(playlist.length));
+            } else {
+              playIndex(0);
+            }
+          }
+        }
+      } else {
+        // Android和其他平台使用文件夹选择
+        String? folderPath = await FilePicker.platform.getDirectoryPath();
+        if (folderPath != null) {
+          print('选中的文件夹: $folderPath');
+          lLog('MainVideoController.pickFolder 1 ${folderPath} ');
+
+          // 在后台线程执行耗时操作
+          await Future.delayed(Duration.zero, () async {
+            try {
+              final dir = Directory(folderPath!);
+              lLog('MainVideoController.pickFolder 2 ${folderPath} ');
+              final allEntities = dir.listSync(recursive: true);
+              lLog('MainVideoController.pickFolder 3 ${folderPath} ');
+
+              // 保留所有文件
+              final files = allEntities.where((entity) => entity is File).toList();
+
+              // 排序
+              files.sort((a, b) => _naturalCompare(a.path, b.path));
+
+              // 回到主线程更新UI
+              Get.back();
+              playlist.value = files;
+              lLog('MainVideoController.pickFolder ${playlist} ');
+
+              // 构建树形播放列表
+              _buildTreePlaylist(folderPath!);
+
+              // 根据随机播放模式决定播放策略
+              if (playlist.isNotEmpty) {
+                if (isShuffleMode.value) {
+                  playIndex(Random().nextInt(playlist.length));
+                } else {
+                  playIndex(0);
+                }
+              }
+            } catch (e) {
+              lLog('MainVideoController.pickFolder error: $e');
+              Utils.showToastMsg('读取文件夹失败: $e');
+            }
+          });
         }
       }
+    } catch (e) {
+      lLog('MainVideoController.pickFolder error: $e');
+      Utils.showToastMsg('选择文件夹失败: $e');
     }
   }
 
   void _buildTreePlaylist(String rootPath) {
     treePlaylist.clear();
-    final dir = Directory(rootPath);
-    final entities = dir.listSync(recursive: true);
 
-    // 按文件夹分组
-    Map<String, List<FileSystemEntity>> folderMap = {};
+    try {
+      // 按文件夹分组
+      Map<String, List<FileSystemEntity>> folderMap = {};
 
-    for (var entity in entities) {
-      if (entity is File) {
-        final relativePath = p.relative(entity.path, from: rootPath);
-        final folder = p.dirname(relativePath);
-        if (!folderMap.containsKey(folder)) {
-          folderMap[folder] = [];
+      if (Platform.isIOS) {
+        // 在iOS上，直接使用playlist中的文件
+        for (var entity in playlist) {
+          if (entity is File) {
+            final relativePath = p.relative(entity.path, from: rootPath);
+            final folder = p.dirname(relativePath);
+            if (!folderMap.containsKey(folder)) {
+              folderMap[folder] = [];
+            }
+            folderMap[folder]!.add(entity);
+          }
         }
-        folderMap[folder]!.add(entity);
+      } else {
+        // 在Android和其他平台，使用目录遍历
+        final dir = Directory(rootPath);
+        final entities = dir.listSync(recursive: true);
+
+        for (var entity in entities) {
+          if (entity is File) {
+            final relativePath = p.relative(entity.path, from: rootPath);
+            final folder = p.dirname(relativePath);
+            if (!folderMap.containsKey(folder)) {
+              folderMap[folder] = [];
+            }
+            folderMap[folder]!.add(entity);
+          }
+        }
+      }
+
+      // 构建树形结构
+      folderMap.forEach((folder, files) {
+        files.sort((a, b) => _naturalCompare(a.path, b.path));
+        treePlaylist.add({
+          'folder': folder,
+          'files': files,
+          'isExpanded': true.obs,
+        });
+      });
+
+      // 排序：根目录文件夹在前
+      treePlaylist.sort((a, b) {
+        if (a['folder'] == '.') return -1;
+        if (b['folder'] == '.') return 1;
+        return (a['folder'] as String).compareTo(b['folder'] as String);
+      });
+    } catch (e) {
+      lLog('MainVideoController._buildTreePlaylist error: $e');
+      // 如果构建失败，使用简单的列表结构
+      if (playlist.isNotEmpty) {
+        treePlaylist.add({
+          'folder': '.',
+          'files': playlist,
+          'isExpanded': true.obs,
+        });
       }
     }
-
-    // 构建树形结构
-    folderMap.forEach((folder, files) {
-      files.sort((a, b) => _naturalCompare(a.path, b.path));
-      treePlaylist.add({
-        'folder': folder,
-        'files': files,
-        'isExpanded': true.obs,
-      });
-    });
-
-    // 排序：根目录文件夹在前
-    treePlaylist.sort((a, b) {
-      if (a['folder'] == '.') return -1;
-      if (b['folder'] == '.') return 1;
-      return (a['folder'] as String).compareTo(b['folder'] as String);
-    });
   }
 
   static int _naturalCompare(String a, String b) {
