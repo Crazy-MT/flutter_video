@@ -1,5 +1,5 @@
-import 'package:flutter_video_stable/common/components/rounded_container.dart';
-import 'package:flutter_video_stable/common/extend.dart';
+import 'package:yueshi_player/common/components/rounded_container.dart';
+import 'package:yueshi_player/common/extend.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

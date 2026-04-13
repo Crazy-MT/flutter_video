@@ -1,5 +1,5 @@
-name: flutter_video_stable
-description: "A new Flutter project."
+name: yueshi_player
+description: "悦视播放器 - 全平台视频播放应用"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

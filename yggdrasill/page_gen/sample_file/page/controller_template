@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
-import 'package:flutter_video_stable/common/components/status_page/status_page.dart';
-import 'package:flutter_video_stable/network/l_request.dart';
-import 'package:flutter_video_stable/network/net_constant.dart';
-import 'package:flutter_video_stable/utils/utils.dart';
+import 'package:yueshi_player/common/components/status_page/status_page.dart';
+import 'package:yueshi_player/network/l_request.dart';
+import 'package:yueshi_player/network/net_constant.dart';
+import 'package:yueshi_player/utils/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 

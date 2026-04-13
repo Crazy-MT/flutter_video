@@ -1,4 +1,4 @@
-package com.example.flutter_video_stable
+package com.example.yueshi_player
 
 
 import android.content.Context

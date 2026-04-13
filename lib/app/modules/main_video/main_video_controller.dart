@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter_video_stable/common/common.dart';
-import 'package:flutter_video_stable/utils/log_utils.dart';
+import 'package:yueshi_player/common/common.dart';
+import 'package:yueshi_player/utils/log_utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:flutter_video_stable/common/components/status_page/status_page.dart';
-import 'package:flutter_video_stable/utils/utils.dart';
+import 'package:yueshi_player/common/components/status_page/status_page.dart';
+import 'package:yueshi_player/utils/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';

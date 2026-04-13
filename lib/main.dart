@@ -1,15 +1,15 @@
 import 'dart:io';
 
-import 'package:flutter_video_stable/common/colors.dart';
-import 'package:flutter_video_stable/utils/platform_utils.dart';
-import 'package:flutter_video_stable/utils/scroll_behavior.dart';
+import 'package:yueshi_player/common/colors.dart';
+import 'package:yueshi_player/utils/platform_utils.dart';
+import 'package:yueshi_player/utils/scroll_behavior.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_video_stable/utils/platform_utils.dart';
+// 已移除重复导入
 import 'package:get/get.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:oktoast/oktoast.dart';
@@ -142,7 +142,7 @@ class App extends StatelessWidget {
                 },
               ),
               defaultTransition: Transition.rightToLeft,
-              title: "播放",
+              title: "悦视播放器",
               initialRoute: RoutesID.MAIN_VIDEO_PAGE,
               getPages: AppPages.routes,
             ),

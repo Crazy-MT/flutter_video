@@ -1,4 +1,4 @@
-import 'package:flutter_video_stable/app/routes/app_routes.dart';
+import 'package:yueshi_player/app/routes/app_routes.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:get/get_navigation/src/root/parse_route.dart';

@@ -1,10 +1,10 @@
 import '$PageControllerFileName.dart';
-import 'package:flutter_video_stable/common/components/status_page/status_page.dart';
+import 'package:yueshi_player/common/components/status_page/status_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_video_stable/app/routes/app_routes.dart';
-import 'package:flutter_video_stable/common/colors.dart';
-import 'package:flutter_video_stable/common/components/common_app_bar.dart';
+import 'package:yueshi_player/app/routes/app_routes.dart';
+import 'package:yueshi_player/common/colors.dart';
+import 'package:yueshi_player/common/components/common_app_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class $PageClassName extends GetView<$PageNameController> {

@@ -1,4 +1,4 @@
-# flutter_video_stable
+# yueshi_player
 
 一个基于 Flutter + media_kit 的本地视频播放器。
 

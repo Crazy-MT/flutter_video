@@ -4,11 +4,6 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Optional: Add this permission if you want to use bluetooth telephony device like headset/earbuds -->
@@ -29,7 +24,7 @@
 
     <application
         android:requestLegacyExternalStorage="true"
-        android:label="视频播放"
+        android:label="悦视播放器"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

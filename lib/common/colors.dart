@@ -1,7 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
 
-import 'package:flutter_video_stable/common/extend.dart';
+import 'package:yueshi_player/common/extend.dart';
 import 'package:flutter/material.dart';
 
 class ColorsApp {

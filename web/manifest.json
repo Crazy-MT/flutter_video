@@ -1,11 +1,12 @@
 {
-    "name": "flutter_video_stable",
-    "short_name": "flutter_video_stable",
+    "name": "悦视播放器",
+    "short_name": "悦视播放器",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "悦视播放器 - 全平台视频播放应用",
+
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

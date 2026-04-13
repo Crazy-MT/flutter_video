@@ -1,4 +1,4 @@
-import 'package:flutter_video_stable/utils/log_utils.dart';
+import 'package:yueshi_player/utils/log_utils.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

@@ -6,7 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 
 import 'main_video_controller.dart';
-import 'package:flutter_video_stable/common/components/status_page/status_page.dart';
+import 'package:yueshi_player/common/components/status_page/status_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
