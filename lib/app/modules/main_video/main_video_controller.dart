@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 
 import 'package:yueshi_player/common/common.dart';
 import 'package:yueshi_player/utils/log_utils.dart';
@@ -33,6 +32,9 @@ class MainVideoController extends GetxController {
 
   static const platform = MethodChannel('com.bomanyi.ai/channel');
   var currentPath = ''.obs;
+  final showVideoLibrary = false.obs;
+  final libraryScrollController = ScrollController();
+  // 所有普通文件都按视频尝试解码，不按扩展名或格式筛选。
   var playlist = [].obs;
   var treePlaylist = [].obs; // 树形播放列表数据
 
@@ -91,6 +93,7 @@ class MainVideoController extends GetxController {
       var status = await Permission.manageExternalStorage.request();
       if (status.isGranted) {
         print("✅ 权限已获取");
+        pickFolder();
       } else if (status.isPermanentlyDenied) {
         print("❌ 用户永久拒绝，请跳转设置页");
         openAppSettings(); // 打开系统设置
@@ -115,6 +118,7 @@ class MainVideoController extends GetxController {
     }*/
 
     if (call.method == "onVideoReceivedUri") {
+      showVideoLibrary.value = false;
       currentPath.value = call.arguments as String;
       print("📥 收到视频 URI: ${currentPath.value}");
       playFile(currentPath.value);
@@ -124,6 +128,14 @@ class MainVideoController extends GetxController {
   void playFile(String path) async {
     lLog('MainVideoController.playFile ${path} ');
     _hasTriggeredAutoPlay = false; // 重置自动播放标志
+    await controller.platform.future;
+    if (Platform.isMacOS) {
+      // Local files do not need a disk cache outside the App Sandbox.
+      await (player.platform as NativePlayer).setProperty(
+        'cache-on-disk',
+        'no',
+      );
+    }
     await player.open(Media(path));
     _loadMemoryPoint(path);
   }
@@ -153,21 +165,13 @@ class MainVideoController extends GetxController {
           files.sort((a, b) => _naturalCompare(a.path, b.path));
 
           // 更新UI
-          Get.back();
           playlist.value = files;
           lLog('MainVideoController.pickFolder ${playlist} ');
 
           // 构建树形播放列表
           _buildTreePlaylist(folderPath);
 
-          // 根据随机播放模式决定播放策略
-          if (playlist.isNotEmpty) {
-            if (isShuffleMode.value) {
-              playIndex(Random().nextInt(playlist.length));
-            } else {
-              playIndex(0);
-            }
-          }
+          await showLibrary();
         }
       } else {
         // Android和其他平台使用文件夹选择
@@ -185,27 +189,21 @@ class MainVideoController extends GetxController {
               lLog('MainVideoController.pickFolder 3 ${folderPath} ');
 
               // 保留所有文件
-              final files = allEntities.where((entity) => entity is File).toList();
+              final files = allEntities
+                  .where((entity) => entity is File)
+                  .toList();
 
               // 排序
               files.sort((a, b) => _naturalCompare(a.path, b.path));
 
               // 回到主线程更新UI
-              Get.back();
               playlist.value = files;
               lLog('MainVideoController.pickFolder ${playlist} ');
 
               // 构建树形播放列表
               _buildTreePlaylist(folderPath!);
 
-              // 根据随机播放模式决定播放策略
-              if (playlist.isNotEmpty) {
-                if (isShuffleMode.value) {
-                  playIndex(Random().nextInt(playlist.length));
-                } else {
-                  playIndex(0);
-                }
-              }
+              await showLibrary();
             } catch (e) {
               lLog('MainVideoController.pickFolder error: $e');
               Utils.showToastMsg('读取文件夹失败: $e');
@@ -217,6 +215,20 @@ class MainVideoController extends GetxController {
       lLog('MainVideoController.pickFolder error: $e');
       Utils.showToastMsg('选择文件夹失败: $e');
     }
+  }
+
+  Future<void> showLibrary() async {
+    _hasTriggeredAutoPlay = true;
+    await player.stop();
+    currentPath.value = '';
+    showVideoLibrary.value = true;
+    if (libraryScrollController.hasClients) libraryScrollController.jumpTo(0);
+  }
+
+  void returnToLibrary() {
+    _hasTriggeredAutoPlay = true;
+    player.pause();
+    showVideoLibrary.value = true;
   }
 
   void _buildTreePlaylist(String rootPath) {
@@ -303,27 +315,13 @@ class MainVideoController extends GetxController {
     return aParts.length.compareTo(bParts.length);
   }
 
-  bool _isVideoFile(String path) {
-    final ext = p.extension(path).toLowerCase();
-    return [
-      '.mp4',
-      '.avi',
-      '.mkv',
-      '.mov',
-      '.wmv',
-      '.flv',
-      '.webm',
-      '.m4v',
-      '.3gp'
-    ].contains(ext);
-  }
-
   void setPageName(String newName) {
     pageName.value = newName;
   }
 
   @override
   void onClose() {
+    libraryScrollController.dispose();
     playlistScrollController.dispose();
     playlistSheetScrollController.dispose();
     super.onClose();
@@ -336,6 +334,7 @@ class MainVideoController extends GetxController {
     if (index < 0 || index >= playlist.length) {
       return;
     }
+    showVideoLibrary.value = false;
     currentIndex.value = index;
     var path = playlist[index].path;
     currentPath.value = path;
@@ -366,7 +365,7 @@ class MainVideoController extends GetxController {
 
   void _onPlaybackCompleted() {
     // 播放完成时自动播放下一个
-    playNext();
+    if (!showVideoLibrary.value) playNext();
   }
 
   void toggleShuffleMode() {
@@ -459,28 +458,32 @@ class MainVideoController extends GetxController {
               ),
             ),
             Expanded(
-              child: Obx(() => ListView.builder(
-                    controller: playlistSheetScrollController,
-                    itemExtent: 56,
-                    itemCount: playlist.length,
-                    itemBuilder: (context, index) {
-                      final name = playlist[index].path.split('/').last;
-                      return ListTile(
-                        title: Obx(() => Text(
-                              name,
-                              style: TextStyle(
-                                color: (index == currentIndex.value)
-                                    ? Colors.amber
-                                    : Colors.white,
-                              ),
-                            )),
-                        onTap: () {
-                          playIndex(index);
-                          Get.back();
-                        },
-                      );
-                    },
-                  )),
+              child: Obx(
+                () => ListView.builder(
+                  controller: playlistSheetScrollController,
+                  itemExtent: 56,
+                  itemCount: playlist.length,
+                  itemBuilder: (context, index) {
+                    final name = playlist[index].path.split('/').last;
+                    return ListTile(
+                      title: Obx(
+                        () => Text(
+                          name,
+                          style: TextStyle(
+                            color: (index == currentIndex.value)
+                                ? Colors.amber
+                                : Colors.white,
+                          ),
+                        ),
+                      ),
+                      onTap: () {
+                        playIndex(index);
+                        Get.back();
+                      },
+                    );
+                  },
+                ),
+              ),
             ),
           ],
         ),
@@ -572,10 +575,7 @@ class MainVideoController extends GetxController {
         title: const Text('确认删除'),
         content: Text('确定要删除文件 "$fileName" 吗？\n\n注意：此操作将永久删除该文件！'),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('取消'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
           TextButton(
             onPressed: () {
               Get.back();

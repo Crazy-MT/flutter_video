@@ -1,6 +1,10 @@
 package com.example.yueshi_player
 
 
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.Executors
 import android.content.Context
 import android.content.Intent
 import android.database.Cursor
@@ -19,6 +23,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
 
     private val CHANNEL = "com.bomanyi.ai/channel"
+    private val thumbnailExecutor = Executors.newSingleThreadExecutor()
     private var methodChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -26,7 +31,34 @@ class MainActivity: FlutterActivity() {
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
 
         methodChannel?.setMethodCallHandler { call, result ->
-            if (call.method == "moveTaskToBack") {
+            if (call.method == "videoFirstFrame") {
+                val path = call.argument<String>("path")
+                if (path == null) {
+                    result.error("INVALID_PATH", "Missing video path", null)
+                    return@setMethodCallHandler
+                }
+                thumbnailExecutor.execute {
+                    val retriever = MediaMetadataRetriever()
+                    val bytes = try {
+                        retriever.setDataSource(path)
+                        val frame = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST)
+                        frame?.let {
+                            val scale = minOf(1.0, 480.0 / maxOf(it.width, it.height))
+                            val scaled = Bitmap.createScaledBitmap(it, maxOf(1, (it.width * scale).toInt()), maxOf(1, (it.height * scale).toInt()), true)
+                            val output = ByteArrayOutputStream()
+                            scaled.compress(Bitmap.CompressFormat.JPEG, 80, output)
+                            if (scaled !== it) scaled.recycle()
+                            it.recycle()
+                            output.toByteArray()
+                        }
+                    } catch (_: Exception) {
+                        null
+                    } finally {
+                        retriever.release()
+                    }
+                    runOnUiThread { result.success(bytes) }
+                }
+            } else if (call.method == "moveTaskToBack") {
                 moveTaskToBack(true)
                 result.success(null)
             } else {
@@ -36,6 +68,11 @@ class MainActivity: FlutterActivity() {
 
         // 处理从 Intent 启动时的 URI
         handleIncomingVideo(intent)
+    }
+
+    override fun onDestroy() {
+        thumbnailExecutor.shutdown()
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {

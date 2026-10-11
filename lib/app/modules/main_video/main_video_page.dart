@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 
 import 'main_video_controller.dart';
+import 'video_library_page.dart';
 import 'package:yueshi_player/common/components/status_page/status_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -53,6 +54,18 @@ class _MainVideoPageState extends State<MainVideoPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Obx(() => PopScope(
+      canPop: controller.showVideoLibrary.value || controller.playlist.isEmpty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) controller.returnToLibrary();
+      },
+      child: controller.showVideoLibrary.value
+          ? VideoLibraryPage(controller: controller)
+          : buildPlayer(context),
+    ));
+  }
+
+  Widget buildPlayer(BuildContext context) {
     return Focus(
       autofocus: true,
       focusNode: FocusNode(),
@@ -104,7 +117,7 @@ class _MainVideoPageState extends State<MainVideoPage> {
                                       controller.requestStoragePermission();
                                     },
                                     child: const Text(
-                                      '还没有接收到视频\n从文件管理器打开一个视频吧～',
+                                      '选择文件夹，浏览视频',
                                       style: TextStyle(color: Colors.white),
                                       textAlign: TextAlign.center,
                                     ),
@@ -291,6 +304,18 @@ class _MainVideoPageState extends State<MainVideoPage> {
                                     ),
                                   ),
                           )),
+                      if (controller.playlist.isNotEmpty)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          child: SafeArea(
+                            child: IconButton(
+                              tooltip: '返回视频列表',
+                              onPressed: controller.returnToLibrary,
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            ),
+                          ),
+                        ),
                       // ✅ 半透明播放列表（覆盖在右边）
                       Obx(() => Visibility(
                           visible: controller.showPlaylist.value,
