@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:async';
+import 'video_likes.dart';
 
 import 'package:yueshi_player/common/common.dart';
 import 'package:yueshi_player/utils/log_utils.dart';
@@ -7,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:yueshi_player/common/components/status_page/status_page.dart';
 import 'package:yueshi_player/utils/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -17,9 +18,39 @@ import 'package:sp_util/sp_util.dart';
 // import 'package:uri_to_file/uri_to_file.dart';
 
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 class MainVideoController extends GetxController {
+  final likes = VideoLikes();
+  final likeCount = 0.obs;
+  StreamSubscription<bool>? _completedSubscription;
+  int _playRequest = 0;
+  Future<void> _openQueue = Future<void>.value();
+
+  Future<void> loadLikes(String path) async {
+    likeCount.value = 0;
+    try {
+      final count = await likes.count(path);
+      if (currentPath.value == path && count > likeCount.value) {
+        likeCount.value = count;
+      }
+    } catch (_) {
+      if (currentPath.value == path) Utils.showToastMsg('点赞数读取失败，请重试');
+    }
+  }
+
+  Future<void> addLike() async {
+    final path = currentPath.value;
+    if (path.isEmpty) return;
+    try {
+      final count = await likes.increment(path);
+      if (currentPath.value == path && count > likeCount.value) {
+        likeCount.value = count;
+      }
+    } catch (_) {
+      Utils.showToastMsg('点赞保存失败，请重试');
+    }
+  }
+
   final pageName = 'MainVideo'.obs;
   final errorMsg = "".obs;
   final pageStatus = FTStatusPageType.loading.obs;
@@ -43,12 +74,12 @@ class MainVideoController extends GetxController {
   var memoryPointMs = 0.obs;
   var seekFeedback = ''.obs;
   var showSeekFeedback = false.obs;
-  var isShuffleMode = true.obs; // 随机播放模式（默认开启）
   var _hasTriggeredAutoPlay = false; // 防止重复触发自动播放
   final playlistScrollController = ScrollController();
   final playlistSheetScrollController = ScrollController();
 
-  late final player = Player();
+  Player? _player;
+  Player get player => _player ??= Player();
   late final controller = VideoController(player);
 
   @override
@@ -68,15 +99,9 @@ class MainVideoController extends GetxController {
     platform.setMethodCallHandler(_handleMethodCall);
 
     // 监听播放完成事件
-    player.stream.completed.listen((completed) {
-      if (completed && playlist.isNotEmpty && !_hasTriggeredAutoPlay) {
-        _hasTriggeredAutoPlay = true;
-        // 播放完成时自动播放下一个
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _onPlaybackCompleted();
-        });
-      }
-    });
+    _completedSubscription = player.stream.completed.listen(
+      onPlaybackCompleted,
+    );
 
     // requestStoragePermission();
   }
@@ -125,19 +150,36 @@ class MainVideoController extends GetxController {
     }
   }
 
-  void playFile(String path) async {
-    lLog('MainVideoController.playFile ${path} ');
-    _hasTriggeredAutoPlay = false; // 重置自动播放标志
-    await controller.platform.future;
-    if (Platform.isMacOS) {
-      // Local files do not need a disk cache outside the App Sandbox.
-      await (player.platform as NativePlayer).setProperty(
-        'cache-on-disk',
-        'no',
-      );
-    }
-    await player.open(Media(path));
-    _loadMemoryPoint(path);
+  void playFile(String path) {
+    final request = ++_playRequest;
+    _hasTriggeredAutoPlay = true;
+    unawaited(loadLikes(path));
+    // Serialize native opens so an older file cannot finish after the latest selection.
+    _openQueue = _openQueue.then((_) async {
+      if (request != _playRequest || isClosed) return;
+      try {
+        await controller.platform.future;
+        if (Platform.isMacOS) {
+          await (player.platform as NativePlayer).setProperty(
+            'cache-on-disk',
+            'no',
+          );
+        }
+        if (request != _playRequest || isClosed) return;
+        await player.open(Media(path));
+        if (showVideoLibrary.value) {
+          await player.pause();
+          return;
+        }
+        if (request != _playRequest || isClosed) return;
+        _hasTriggeredAutoPlay = false;
+        _loadMemoryPoint(path);
+      } catch (_) {
+        if (request == _playRequest && !isClosed) {
+          Utils.showToastMsg('视频播放失败，请切换下一条');
+        }
+      }
+    });
   }
 
   void pickFolder() async {
@@ -183,7 +225,7 @@ class MainVideoController extends GetxController {
           // 在后台线程执行耗时操作
           await Future.delayed(Duration.zero, () async {
             try {
-              final dir = Directory(folderPath!);
+              final dir = Directory(folderPath);
               lLog('MainVideoController.pickFolder 2 ${folderPath} ');
               final allEntities = dir.listSync(recursive: true);
               lLog('MainVideoController.pickFolder 3 ${folderPath} ');
@@ -201,7 +243,7 @@ class MainVideoController extends GetxController {
               lLog('MainVideoController.pickFolder ${playlist} ');
 
               // 构建树形播放列表
-              _buildTreePlaylist(folderPath!);
+              _buildTreePlaylist(folderPath);
 
               await showLibrary();
             } catch (e) {
@@ -218,6 +260,7 @@ class MainVideoController extends GetxController {
   }
 
   Future<void> showLibrary() async {
+    ++_playRequest;
     _hasTriggeredAutoPlay = true;
     await player.stop();
     currentPath.value = '';
@@ -226,6 +269,7 @@ class MainVideoController extends GetxController {
   }
 
   void returnToLibrary() {
+    ++_playRequest;
     _hasTriggeredAutoPlay = true;
     player.pause();
     showVideoLibrary.value = true;
@@ -321,6 +365,10 @@ class MainVideoController extends GetxController {
 
   @override
   void onClose() {
+    ++_playRequest;
+    _completedSubscription?.cancel();
+    unawaited(likes.close());
+    _player?.dispose();
     libraryScrollController.dispose();
     playlistScrollController.dispose();
     playlistSheetScrollController.dispose();
@@ -363,14 +411,20 @@ class MainVideoController extends GetxController {
     playIndex(nextIndex);
   }
 
+  void onPlaybackCompleted(bool completed) {
+    if (!completed ||
+        playlist.isEmpty ||
+        _hasTriggeredAutoPlay ||
+        showVideoLibrary.value) {
+      return;
+    }
+    _hasTriggeredAutoPlay = true;
+    _onPlaybackCompleted();
+  }
+
   void _onPlaybackCompleted() {
     // 播放完成时自动播放下一个
     if (!showVideoLibrary.value) playNext();
-  }
-
-  void toggleShuffleMode() {
-    isShuffleMode.value = !isShuffleMode.value;
-    Utils.showToastMsg(isShuffleMode.value ? '随机播放已开启' : '随机播放已关闭');
   }
 
   void seekBackward() {

@@ -57,6 +57,9 @@ dependencies:
   media_kit_video: ^1.2.5 # For video rendering.
   media_kit_libs_video: ^1.0.5 # Native video dependencies.
   window_manager: ^0.4.3
+  sqflite: ^2.4.2
+  sqflite_common_ffi: ^2.3.7+1
+  sqlite3_flutter_libs: ^0.5.40
 
 dev_dependencies:
   flutter_test:
